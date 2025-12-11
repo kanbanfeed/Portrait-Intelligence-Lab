@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Registration - Portrait Intelligence Lab™</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">Portrait Intelligence Lab™</div>
+            <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/battle/register">Battles</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <h1 style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--dark);">Battle Registration</h1>
+            <p style="color: var(--text-light); margin-bottom: 2rem;">
+                Register to participate in skill battles. Your division will be automatically selected based on your current tier.
+            </p>
+
+            <div id="eligibility-check" class="hidden">
+                <div class="alert alert-warning">
+                    <strong>Not Eligible:</strong> You need Access Pass ($199) or higher to participate in battles.
+                    <a href="/tier/199" style="margin-left: 1rem; color: var(--primary);">View Access Pass</a>
+                </div>
+            </div>
+
+            <form id="battle-form" class="battle-form">
+                <div class="form-group">
+                    <label class="form-label">Your Name</label>
+                    <input type="text" class="form-input" id="battle-name" placeholder="Enter your name" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Division</label>
+                    <div class="division-selector" id="division-selector">
+                        <label class="division-option">
+                            <input type="radio" name="division" value="free" id="div-free">
+                            <div>Free</div>
+                        </label>
+                        <label class="division-option">
+                            <input type="radio" name="division" value="access" id="div-access">
+                            <div>Access</div>
+                        </label>
+                        <label class="division-option">
+                            <input type="radio" name="division" value="elite" id="div-elite">
+                            <div>Elite</div>
+                        </label>
+                        <label class="division-option">
+                            <input type="radio" name="division" value="circle" id="div-circle">
+                            <div>Circle</div>
+                        </label>
+                    </div>
+                    <p style="color: var(--text-light); font-size: 0.9rem; margin-top: 0.5rem;">
+                        Your division will be auto-selected based on your tier.
+                    </p>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-large btn-block">Register for Battle</button>
+            </form>
+
+            <div id="success-message" class="hidden">
+                <div class="success-message">
+                    <div class="success-icon">✓</div>
+                    <h2>You're Registered!</h2>
+                    <p style="font-size: 1.125rem; margin-top: 1rem;" id="success-details"></p>
+                    <div style="margin-top: 2rem;">
+                        <a href="/dashboard" class="btn btn-primary btn-large">View Dashboard</a>
+                        <a href="/" class="btn btn-secondary btn-large" style="margin-left: 1rem;">Back to Home</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        async function loadBattlePage() {
+            const user = await fetchUserData();
+            if (!user) {
+                showAlert('Error loading page', 'warning');
+                return;
+            }
+
+            // Check eligibility
+            const canJoinBattles = user.tiers.includes('199') || user.tiers.includes('999') || user.tiers.includes('9999') || user.tiers.includes('circle');
+            
+            if (!canJoinBattles) {
+                document.getElementById('eligibility-check').classList.remove('hidden');
+                document.getElementById('battle-form').classList.add('hidden');
+                return;
+            }
+
+            // Auto-select division based on tier
+            let selectedDivision = 'free';
+            if (user.tiers.includes('circle') || user.tiers.includes('9999')) {
+                selectedDivision = 'circle';
+            } else if (user.tiers.includes('999')) {
+                selectedDivision = 'elite';
+            } else if (user.tiers.includes('199')) {
+                selectedDivision = 'access';
+            }
+
+            document.getElementById(`div-${selectedDivision}`).checked = true;
+            document.getElementById(`div-${selectedDivision}`).closest('.division-option').classList.add('selected');
+
+            // Pre-fill name if available
+            if (user.name) {
+                document.getElementById('battle-name').value = user.name;
+            }
+
+            // Division selector styling
+            document.querySelectorAll('.division-option input[type="radio"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    document.querySelectorAll('.division-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    e.target.closest('.division-option').classList.add('selected');
+                });
+            });
+
+            // Form submission
+            document.getElementById('battle-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const name = document.getElementById('battle-name').value.trim();
+                const division = document.querySelector('input[name="division"]:checked').value;
+
+                if (!name) {
+                    showAlert('Please enter your name', 'warning');
+                    return;
+                }
+
+                const result = await registerBattle(name, division);
+                if (result && result.success) {
+                    document.getElementById('battle-form').classList.add('hidden');
+                    document.getElementById('success-message').classList.remove('hidden');
+                    document.getElementById('success-details').textContent = 
+                        `You've been registered for battle in the ${division.charAt(0).toUpperCase() + division.slice(1)} division.`;
+                } else {
+                    showAlert('Registration failed. Please try again.', 'warning');
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadBattlePage);
+    </script>
+</body>
+</html>
+

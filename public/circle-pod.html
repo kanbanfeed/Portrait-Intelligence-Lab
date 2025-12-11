@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Your Pod - Portrait Intelligence Lab™</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">Portrait Intelligence Lab™</div>
+            <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/dashboard">Dashboard</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div id="not-member" class="hidden">
+            <div class="card">
+                <div class="alert alert-warning">
+                    <h2 style="margin-bottom: 1rem;">Circle Membership Required</h2>
+                    <p>You need to be a member of The Circle to join a pod.</p>
+                    <a href="/tier/9999" class="btn btn-primary btn-large mt-3">Learn About The Circle</a>
+                </div>
+            </div>
+        </div>
+
+        <div id="already-assigned" class="hidden">
+            <div class="pod-card">
+                <h2>Welcome Back</h2>
+                <p style="font-size: 1.25rem; margin-bottom: 2rem;">You're already assigned to a pod:</p>
+                <div class="pod-name" id="existing-pod-name"></div>
+                <a href="/dashboard" class="btn btn-primary btn-large mt-3">Go to Dashboard</a>
+            </div>
+        </div>
+
+        <div id="assignment-form" class="card">
+            <h1 style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--dark);">Join Your Circle Pod</h1>
+            <p style="color: var(--text-light); margin-bottom: 2rem;">
+                As a Circle member, you'll be assigned to an exclusive pod. Click below to join your pod.
+            </p>
+
+            <div style="text-align: center; margin: 3rem 0;">
+                <button id="assign-pod-btn" class="btn btn-success btn-large">Join Your Pod</button>
+            </div>
+        </div>
+
+        <div id="assigned-pod" class="hidden">
+            <div class="pod-card">
+                <h2>Welcome to Your Pod</h2>
+                <p style="font-size: 1.25rem; margin-bottom: 2rem;">You've been assigned to:</p>
+                <div class="pod-name" id="pod-name"></div>
+                <p style="font-size: 1.125rem; margin-top: 2rem; opacity: 0.9;">
+                    Your pod assignment is complete. Connect with your pod members and start collaborating.
+                </p>
+                <div style="margin-top: 2rem;">
+                    <a href="/dashboard" class="btn btn-primary btn-large">Go to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        async function loadPodPage() {
+            const user = await fetchUserData();
+            if (!user) {
+                showAlert('Error loading page', 'warning');
+                return;
+            }
+
+            // Check if user is Circle member
+            const isCircleMember = user.circleInvite || user.tiers.includes('circle') || user.tiers.includes('9999');
+            
+            if (!isCircleMember) {
+                document.getElementById('not-member').classList.remove('hidden');
+                document.getElementById('assignment-form').classList.add('hidden');
+                return;
+            }
+
+            // Check if already assigned
+            if (user.pod) {
+                document.getElementById('already-assigned').classList.remove('hidden');
+                document.getElementById('existing-pod-name').textContent = user.pod;
+                document.getElementById('assignment-form').classList.add('hidden');
+                return;
+            }
+
+            // Assignment button
+            document.getElementById('assign-pod-btn').addEventListener('click', async () => {
+                const result = await assignPod();
+                if (result && result.success) {
+                    document.getElementById('assignment-form').classList.add('hidden');
+                    document.getElementById('assigned-pod').classList.remove('hidden');
+                    document.getElementById('pod-name').textContent = result.pod;
+                } else {
+                    showAlert('Failed to assign pod. Please try again.', 'warning');
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadPodPage);
+    </script>
+</body>
+</html>
+

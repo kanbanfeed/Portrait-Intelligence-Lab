@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Micro-Actions - Portrait Intelligence Lab™</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">Portrait Intelligence Lab™</div>
+            <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/micro-actions">Micro-Actions</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="micro-actions-panel">
+            <h2>Micro-Actions Checklist</h2>
+            <p style="color: var(--text-light); margin-bottom: 2rem;">
+                Complete all 7 micro-actions to unlock the $49 resource. Each action is designed to build momentum and create real progress.
+            </p>
+
+            <div class="progress-container">
+                <div class="progress-label">
+                    <span>Overall Progress</span>
+                    <span id="progress-text">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-bar" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <ul class="checklist" id="micro-actions-list">
+                <li class="checklist-item">
+                    <input type="checkbox" id="action-0" data-index="0">
+                    <label for="action-0">Complete your profile setup</label>
+                    <span class="check-icon hidden">✓</span>
+                </li>
+                <li class="checklist-item">
+                    <input type="checkbox" id="action-1" data-index="1">
+                    <label for="action-1">Read the welcome guide</label>
+                    <span class="check-icon hidden">✓</span>
+                </li>
+                <li class="checklist-item">
+                    <input type="checkbox" id="action-2" data-index="2">
+                    <label for="action-2">Set your learning goals</label>
+                    <span class="check-icon hidden">✓</span>
+                </li>
+                <li class="checklist-item">
+                    <input type="checkbox" id="action-3" data-index="3">
+                    <label for="action-3">Complete your first assessment</label>
+                    <span class="check-icon hidden">✓</span>
+                </li>
+                <li class="checklist-item">
+                    <input type="checkbox" id="action-4" data-index="4">
+                    <label for="action-4">Join the community discussion</label>
+                    <span class="check-icon hidden">✓</span>
+                </li>
+                <li class="checklist-item">
+                    <input type="checkbox" id="action-5" data-index="5">
+                    <label for="action-5">Share your progress</label>
+                    <span class="check-icon hidden">✓</span>
+                </li>
+                <li class="checklist-item">
+                    <input type="checkbox" id="action-6" data-index="6">
+                    <label for="action-6">Review your learning path</label>
+                    <span class="check-icon hidden">✓</span>
+                </li>
+            </ul>
+
+            <div id="completion-message" class="hidden">
+                <div class="success-message">
+                    <div class="success-icon">🎉</div>
+                    <h2>Congratulations!</h2>
+                    <p style="font-size: 1.125rem; margin-top: 1rem;">
+                        You've completed all micro-actions! The $49 resource has been unlocked.
+                    </p>
+                    <a href="/dashboard" class="btn btn-success btn-large mt-3">View Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        async function loadMicroActions() {
+            const user = await fetchUserData();
+            if (!user) {
+                showAlert('Error loading micro-actions', 'warning');
+                return;
+            }
+
+            // Update checkboxes
+            user.microActions.forEach((completed, index) => {
+                const checkbox = document.getElementById(`action-${index}`);
+                const item = checkbox.closest('.checklist-item');
+                const icon = item.querySelector('.check-icon');
+                
+                checkbox.checked = completed;
+                if (completed) {
+                    item.classList.add('completed');
+                    icon.classList.remove('hidden');
+                } else {
+                    item.classList.remove('completed');
+                    icon.classList.add('hidden');
+                }
+            });
+
+            // Update progress
+            updateProgress(user.microActions);
+
+            // Check if all complete
+            const allComplete = user.microActions.every(a => a === true);
+            if (allComplete) {
+                document.getElementById('completion-message').classList.remove('hidden');
+            }
+
+            // Add event listeners
+            document.querySelectorAll('#micro-actions-list input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', async (e) => {
+                    const index = parseInt(e.target.dataset.index);
+                    const completed = e.target.checked;
+                    
+                    const result = await updateMicroAction(index, completed);
+                    if (result && result.success) {
+                        const item = e.target.closest('.checklist-item');
+                        const icon = item.querySelector('.check-icon');
+                        
+                        if (completed) {
+                            item.classList.add('completed');
+                            icon.classList.remove('hidden');
+                        } else {
+                            item.classList.remove('completed');
+                            icon.classList.add('hidden');
+                        }
+                        
+                        updateProgress(result.user.microActions);
+                        
+                        // Check if all complete
+                        const allComplete = result.user.microActions.every(a => a === true);
+                        if (allComplete) {
+                            document.getElementById('completion-message').classList.remove('hidden');
+                            showAlert('Congratulations! You\'ve unlocked the $49 resource!', 'success');
+                        }
+                    }
+                });
+            });
+        }
+
+        function updateProgress(actions) {
+            const progress = calculateProgress(actions);
+            document.getElementById('progress-text').textContent = `${progress}%`;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+        }
+
+        document.addEventListener('DOMContentLoaded', loadMicroActions);
+    </script>
+</body>
+</html>
+
