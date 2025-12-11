@@ -158,12 +158,13 @@ background: linear-gradient(135deg, #4e80cb 0%,    #8351a9 100%);
 /* Hero Section */
 .hero {
  text-align: center;
- padding: 4rem 2rem;
+ padding: 4rem 2rem 6rem; /* Increased bottom padding for swoop effect */
  background: var(--gradient);
  color: white;
- border-radius: 1rem;
+ border-radius: 1rem 1rem 8rem 1rem; /* Unique curved bottom-left corner */
  margin: 2rem auto;
  max-width: 1200px;
+  box-shadow: var(--shadow-lg); /* Use large shadow for depth */
 }
 
 .hero h1 {
@@ -949,8 +950,8 @@ background: linear-gradient(135deg, #4e80cb 0%,    #8351a9 100%);
     transform: rotate(3deg); /* Slight rotation for attention */
 }
 
-/* Ensure the card can contain the absolute badge */
 .card-premium {
-    position: relative; /* Context for the absolute badge */
-    overflow: visible; /* Allows the badge to extend outside */
+    position: relative; 
+    overflow: visible; 
 }
+
