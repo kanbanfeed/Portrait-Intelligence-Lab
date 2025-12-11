@@ -33,8 +33,7 @@ body {
 
 /* Navigation */
 .navbar {
-background: linear-gradient(135deg, #4e80cb 0%,    #8351a9 100%);
-
+background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
  box-shadow: var(--shadow);
  padding: 1rem 2rem;
  position: sticky;
@@ -71,7 +70,7 @@ background: linear-gradient(135deg, #4e80cb 0%,    #8351a9 100%);
 }
 
 .logo {
- font-size: 1.5rem;
+ font-size: 1.1rem;
  font-weight: 700;
 }
 
@@ -113,7 +112,7 @@ background: linear-gradient(135deg, #4e80cb 0%,    #8351a9 100%);
   top: 100%;
   left: 0;
   right: 0;
-  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+   background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
   flex-direction: column;
   padding: 1rem 2rem;
   box-shadow: var(--shadow-lg);
@@ -135,6 +134,7 @@ background: linear-gradient(135deg, #4e80cb 0%,    #8351a9 100%);
  }
  
  .navbar {
+   
   padding: 1rem;
  }
  
@@ -157,14 +157,15 @@ background: linear-gradient(135deg, #4e80cb 0%,    #8351a9 100%);
 
 /* Hero Section */
 .hero {
+   
+   font-family:Georgia, 'Times New Roman', Times, serif;
  text-align: center;
- padding: 4rem 2rem 6rem; /* Increased bottom padding for swoop effect */
- background: var(--gradient);
- color: white;
- border-radius: 1rem 1rem 8rem 1rem; /* Unique curved bottom-left corner */
+ padding: 4rem 2rem;
+ background-color: #afe1e3;
+ color: rgb(140, 74, 168);
+ border-radius: 2rem;
  margin: 2rem auto;
  max-width: 1200px;
-  box-shadow: var(--shadow-lg); /* Use large shadow for depth */
 }
 
 .hero h1 {
@@ -174,6 +175,7 @@ background: linear-gradient(135deg, #4e80cb 0%,    #8351a9 100%);
 }
 
 .hero p {
+   color: #694413;
  font-size: 1.25rem;
  opacity: 0.95;
  max-width: 600px;
@@ -196,7 +198,8 @@ background: linear-gradient(135deg, #4e80cb 0%,    #8351a9 100%);
     /* Force buttons to full width on mobile if they are not already block-level */
     .hero-buttons .btn {
         width: 100%;
-        max-width: 300px; /* Optional: cap the max width for aesthetics */
+        max-width: 300px; 
+        
     }
 }
 
@@ -265,7 +268,7 @@ background: linear-gradient(135deg, #4e80cb 0%,    #8351a9 100%);
 }
 
 .btn-secondary {
- background: var(--secondary);
+ background: #f59e0b;
  color: white;
 }
 
@@ -608,7 +611,7 @@ background: linear-gradient(135deg, #4e80cb 0%,    #8351a9 100%);
  border-radius: 0.75rem;
  padding: 2rem;
  box-shadow: var(--shadow);
- border-left: 4px solid var(--primary);
+ border-left: 4px solid #FF9800;;
  transition: transform 0.3s, box-shadow 0.3s;
 }
 
@@ -629,7 +632,7 @@ background: linear-gradient(135deg, #4e80cb 0%,    #8351a9 100%);
 .dashboard-card .status-value {
  font-size: 2rem;
  font-weight: 700;
- color: var(--primary);
+ color: #f59e0b;
  margin: 0.5rem 0;
 }
 
@@ -893,6 +896,7 @@ background: linear-gradient(135deg, #4e80cb 0%,    #8351a9 100%);
  .payment-btn {
   width: 100%;
  }
+
  
  .pod-name {
   font-size: 2.5rem;
@@ -950,8 +954,8 @@ background: linear-gradient(135deg, #4e80cb 0%,    #8351a9 100%);
     transform: rotate(3deg); /* Slight rotation for attention */
 }
 
+/* Ensure the card can contain the absolute badge */
 .card-premium {
-    position: relative; 
-    overflow: visible; 
+    position: relative; /* Context for the absolute badge */
+    overflow: visible; /* Allows the badge to extend outside */
 }
-
