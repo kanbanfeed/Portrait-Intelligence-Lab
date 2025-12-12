@@ -207,4 +207,3 @@ app.post('/api/payment/confirm', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Portrait Intelligence Lab server running on http://localhost:${PORT}`);
 });
-

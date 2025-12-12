@@ -146,6 +146,28 @@ background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
  .payment-hero h1 {
   font-size: 2rem;
  }
+
+ /* VI. New utility class for mobile button grouping (Tier and Payment Pages) */
+    .action-group-mobile {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        align-items: center; 
+    }
+    .action-group-mobile .btn {
+        width: 100%;
+        max-width: 300px; 
+    }
+
+    /* V. Fix Quick Actions alignment on Dashboard */
+    .quick-actions-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .quick-actions-wrap .btn {
+        width: 100%;
+    }
 }
 
 /* Container */
@@ -324,20 +346,21 @@ background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
 
 /* Dashboard Cards */
 .dashboard-card {
- background: var(--card-bg);
- border-radius: 1rem;
+ background: white;
+ border-radius: 0.75rem;
  padding: 2rem;
  box-shadow: var(--shadow);
- border-left: 5px solid var(--primary); 
+ border-left: 4px solid #FF9800;
  transition: transform 0.3s, box-shadow 0.3s;
   
   /* FIX 1: Make card a Flex container */
   display: flex;
   flex-direction: column;
 }
-.dashboard-card > div:last-child {
-    margin-top: auto;
-}
+/* ADDED: Ensure content pushes the bottom action to the bottom */
+
+/* END ADDED */
+
 .dashboard-card h3 {
  font-size: 1.25rem;
  margin-bottom: 1rem;
@@ -629,8 +652,14 @@ background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
  border-radius: 0.75rem;
  padding: 2rem;
  box-shadow: var(--shadow);
- border-left: 4px solid #FF9800;;
+ border-left: 4px solid #FF9800;
  transition: transform 0.3s, box-shadow 0.3s;
+ display: flex;
+  flex-direction: column; 
+}
+
+.dashboard-card > div:last-child {
+    margin-top: auto; 
 }
 
 .dashboard-card:hover {
@@ -976,4 +1005,55 @@ background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
 .card-premium {
     position: relative; /* Context for the absolute badge */
     overflow: visible; /* Allows the badge to extend outside */
+}
+
+/* ===== Dashboard buttons alignment patch ===== */
+/* Ensure dashboard cards are column flex containers and have a minimum height */
+.dashboard-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 240px; /* tweak as needed so cards look even in height */
+}
+
+/* The actions area is forced to the bottom and lays out buttons with gaps */
+.card-actions {
+  margin-top: auto;            /* pushes actions to the bottom of the card */
+  display: flex;
+  gap: 0.75rem;                /* space between buttons */
+  align-items: center;
+  justify-content: flex-start; /* left-align buttons; change to center if you prefer */
+  padding-top: 1rem;          /* small spacing above actions */
+}
+
+/* Ensure anchor buttons don't have extra top/bottom margins */
+.dashboard-card a.btn,
+.card a.btn {
+  margin: 0;
+  padding: 0.5rem 1rem; /* unified padding (optional) */
+  font-size: 0.95rem;   /* slightly smaller for neatness in cards */
+}
+
+/* Quick-actions wrap: align nicely on desktop, stack on mobile (you already have mobile rules) */
+.quick-actions-wrap {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+/* Mobile: make card actions full width for easier tapping */
+@media (max-width: 768px) {
+  .card-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .card-actions .btn {
+    width: 100%;
+    max-width: 100%;
+  }
+  .quick-actions-wrap {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }

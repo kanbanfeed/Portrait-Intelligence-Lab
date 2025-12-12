@@ -28,9 +28,12 @@
                 <h3>✔ Your Current Tier</h3>
                 <div class="status-value" id="current-tier">Loading...</div>
                 <div class="status-description" id="tier-description">Checking your tier status...</div>
-                <div style="margin-top: 1rem;">
-                    <a href="/" class="btn btn-primary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">View All Tiers</a>
-                </div>
+                <div id="tier-list-display" style="font-size: 0.9rem; color: var(--success); font-weight: 600; margin-top: 0.5rem;"></div>
+                
+                <div class="card-actions" id="tier-actions">
+    <a href="/" class="btn btn-primary">View All Tiers</a>
+</div>
+
             </div>
 
             <div class="dashboard-card">
@@ -42,7 +45,7 @@
                         <div class="progress-fill" id="progress-bar" style="width: 0%;"></div>
                     </div>
                 </div>
-                <div style="margin-top: 1rem;">
+                <div class="card-actions" id="tier-actions">
                     <a href="/micro-actions" class="btn btn-primary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">View Micro-Actions</a>
                 </div>
             </div>
@@ -52,23 +55,27 @@
                 <div class="status-value" id="battle-status">Checking...</div>
                 <div class="status-description" id="battle-description">Your battle eligibility</div>
                 <div id="battle-info" style="margin-top: 1rem;"></div>
-                <div style="margin-top: 1rem;">
+                <div class="card-actions" id="tier-actions">
                     <a href="/battle/register" class="btn btn-primary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Register for Battle</a>
                 </div>
             </div>
 
             <div class="dashboard-card">
-                <h3>✔ Circle Status</h3>
+               
+                <h3>✔ Circle Status</h3> 
                 <div class="status-value" id="circle-status">Checking...</div>
                 <div class="status-description" id="circle-description">Your Circle membership</div>
-                <div id="circle-info" style="margin-top: 1rem;"></div>
-                <div style="margin-top: 1rem;" id="circle-actions"></div>
+                 
+                <div id="circle-info" style="margin-top: 1rem;"></div> 
+                <div class="card-actions" id="tier-actions">
+                <div style="margin-top: 1rem;" id="circle-actions"></div> </div>
+                
             </div>
         </div>
 
         <div class="card" style="margin-top: 3rem;">
             <h2 style="font-size: 1.75rem; margin-bottom: 1rem;">Quick Actions</h2>
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <div class="quick-actions-wrap" style="display: flex; gap: 1rem; flex-wrap: wrap;">
                 <a href="/micro-actions" class="btn btn-primary">Complete Micro-Actions</a>
                 <a href="/battle/register" class="btn btn-secondary">Join a Battle</a>
                 <a href="/" class="btn btn-success">Explore Tiers</a>
@@ -78,6 +85,25 @@
 
     <script src="/js/app.js"></script>
     <script>
+        // Mobile Menu Toggling and Closure Logic (Ensure this is present for navigation to work)
+        document.addEventListener('DOMContentLoaded', () => {
+            
+
+            if (mobileMenuBtn && navLinks) {
+                mobileMenuBtn.addEventListener('click', () => {
+                    navLinks.classList.toggle('active');
+                });
+            }
+
+            document.addEventListener('click', (event) => {
+                const isClickInsideNav = navContainer.contains(event.target);
+                
+                if (navLinks && navLinks.classList.contains('active') && !isClickInsideNav) {
+                    navLinks.classList.remove('active');
+                }
+            });
+        });
+
         async function loadDashboard() {
             const user = await fetchUserData();
             if (!user) {
@@ -89,6 +115,22 @@
             const highestTier = getHighestTier(user.tiers);
             document.getElementById('current-tier').textContent = formatTierName(highestTier);
             document.getElementById('tier-description').textContent = `You have access to ${user.tiers.length} tier(s)`;
+            
+            const tierActionsDiv = document.getElementById('tier-actions');
+            const tierListDisplay = document.getElementById('tier-list-display');
+
+            if (user.tiers.length > 1) {
+                // MODIFIED JS: Use tierListDisplay element to show tiers
+                const tierList = user.tiers.map(t => formatTierName(t)).join(', ');
+                tierListDisplay.innerHTML = `Unlocked Tiers: ${tierList}`;
+                
+                // Ensure tierActionsDiv only holds the button
+                tierActionsDiv.innerHTML = `<a href="/" class="btn btn-primary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">View All Tiers</a>`;
+
+            } else {
+                // Clear the list display if only one tier is present
+                 tierListDisplay.innerHTML = '';
+            }
 
             // Progress
             const progress = calculateProgress(user.microActions);
@@ -134,4 +176,3 @@
     </script>
 </body>
 </html>
-
