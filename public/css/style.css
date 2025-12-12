@@ -1028,7 +1028,7 @@ background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
 /* Ensure anchor buttons don't have extra top/bottom margins */
 .dashboard-card a.btn,
 .card a.btn {
-  margin: 0;
+  margin: 0.1;
   padding: 0.5rem 1rem; /* unified padding (optional) */
   font-size: 0.95rem;   /* slightly smaller for neatness in cards */
 }
@@ -1057,3 +1057,4 @@ background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
     align-items: stretch;
   }
 }
+
