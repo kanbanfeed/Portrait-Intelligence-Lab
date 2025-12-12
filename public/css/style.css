@@ -211,6 +211,9 @@ background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
  box-shadow: var(--shadow);
  transition: transform 0.3s, box-shadow 0.3s;
  margin-bottom: 2rem;
+ display: flex; /* ADDED */
+  flex-direction: column; /* ADDED */
+
 }
 
 .card:hover {
@@ -239,6 +242,10 @@ background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
  font-size: 1.75rem; /* Slightly reduced from 2rem to 1.75rem */
  font-weight: 800;
  color: var(--primary);
+}
+.card a.btn {
+    margin-top: auto; /* Pushes the button wrapper to the bottom */
+    margin-bottom: 0; /* Ensures no extra space below the button */
 }
 /* END FIX */
 
@@ -317,13 +324,20 @@ background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
 
 /* Dashboard Cards */
 .dashboard-card {
- background: white;
- border-radius: 0.75rem;
- padding: 1.5rem;
+ background: var(--card-bg);
+ border-radius: 1rem;
+ padding: 2rem;
  box-shadow: var(--shadow);
- border-left: 4px solid var(--primary);
+ border-left: 5px solid var(--primary); 
+ transition: transform 0.3s, box-shadow 0.3s;
+  
+  /* FIX 1: Make card a Flex container */
+  display: flex;
+  flex-direction: column;
 }
-
+.dashboard-card > div:last-child {
+    margin-top: auto;
+}
 .dashboard-card h3 {
  font-size: 1.25rem;
  margin-bottom: 1rem;
@@ -346,6 +360,10 @@ background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
  background: var(--light);
  color: var(--text);
  margin: 0.25rem 0.25rem 0.25rem 0;
+}
+.dashboard-card a.btn {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
 }
 
 .badge-success {
