@@ -38,7 +38,8 @@ background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
  padding: 1rem 2rem;
  position: sticky;
  top: 0;
- z-index: 1000;
+ overflow: visible;
+ z-index: 3000;
 }
 
 .navbar .logo {
@@ -75,21 +76,36 @@ background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
 }
 
 .nav-links {
- display: flex;
- gap: 2rem;
- list-style: none;
+  display: flex;
+  gap: 2rem;
+  list-style: none;
 }
 
 .nav-links a {
- text-decoration: none;
- color: var(--text);
- font-weight: 500;
- transition: color 0.3s;
+  position: relative;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 500;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease,
+    opacity 0.15s ease;
 }
 
+/* Hover effect */
 .nav-links a:hover {
- color: var(--primary);
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateX(2px);
 }
+
+/* Active / current page */
+.nav-links a.active {
+  background: rgba(255, 255, 255, 0.22);
+  font-weight: 600;
+}
+
 
 /* Mobile Menu */
 .mobile-menu-btn {
@@ -101,28 +117,169 @@ background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
  color: var(--text);
 }
 
-@media (max-width: 768px) {
- .mobile-menu-btn {
-  display: block;
- }
- 
- .nav-links {
-  display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-   background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
-  flex-direction: column;
-  padding: 1rem 2rem;
-  box-shadow: var(--shadow-lg);
-  gap: 0;
-  margin-top: 1rem;
- }
- 
- .nav-links.active {
+.nav-links {
   display: flex;
- }
+  gap: 1.5rem;
+  list-style: none;
+}
+
+.mobile-menu-btn {
+  cursor: pointer;
+  color: var(--text);
+}
+
+/* Hamburger button animation */
+.mobile-menu-btn {
+  width: 28px;
+  height: 22px;
+  position: relative;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.mobile-menu-btn span {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: white;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.mobile-menu-btn span:nth-child(1) { top: 0; }
+.mobile-menu-btn span:nth-child(2) { top: 10px; }
+.mobile-menu-btn span:nth-child(3) { top: 20px; }
+
+/* X animation */
+.mobile-menu-btn.active span:nth-child(1) {
+  transform: rotate(45deg);
+  top: 10px;
+}
+
+.mobile-menu-btn.active span:nth-child(2) {
+  opacity: 0;
+}
+
+.mobile-menu-btn.active span:nth-child(3) {
+  transform: rotate(-45deg);
+  top: 10px;
+}
+
+/* ===============================
+   DESKTOP ACTIVE NAV TAB
+   =============================== */
+
+@media (min-width: 769px) {
+  .nav-links a.active {
+    color: #ffffff;
+    font-weight: 600;
+    position: relative;
+  }
+
+  .nav-links a.active::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -8px;
+    width: 100%;
+    height: 3px;
+    background: #ffffff;
+    border-radius: 2px;
+  }
+}
+
+
+@media (max-width: 768px) {
+
+  .mobile-menu-btn {
+    display: block;
+    font-size: 1.6rem;
+  }
+
+.nav-links {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 12px;
+  width: 220px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  background: linear-gradient(
+    135deg,
+    rgba(0, 119, 182, 0.85),
+    rgba(0, 150, 199, 0.85)
+  );
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  border-radius: 12px;
+  padding: 6px;
+
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.22),
+    0 4px 8px rgba(0, 0, 0, 0.18);
+
+  opacity: 0;
+  transform: translateY(-8px) scale(0.97);
+  pointer-events: none;
+
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+@media (max-width: 768px) {
+
+  .tier-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .tier-actions .btn {
+    width: 100%;
+    max-width: 100%;
+    text-align: center;
+  }
+}
+
+.nav-links.active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+
+  .nav-links li {
+    list-style: none;
+  }
+
+  .nav-links a {
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+
+  color: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+
+  transition:
+    background 0.15s ease,
+    transform 0.12s ease;
+}
+
+.nav-links a:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateX(2px);
+}
+
+}
+
  
  .nav-links li {
   padding: 0.75rem 0;
@@ -146,7 +303,7 @@ background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
  .payment-hero h1 {
   font-size: 2rem;
  }
-}
+
 
 /* Container */
 .container {
@@ -512,6 +669,8 @@ background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
  border-left: 4px solid var(--accent);
 }
 
+
+
 /* Tier Features */
 .features-list {
  list-style: none;
@@ -536,6 +695,70 @@ background: linear-gradient(135deg, #0077B6 0%, #00B4D8 100%);
  margin-right: 0.75rem;
  font-size: 1.25rem;
 }
+
+/* Tier action buttons (Purchase / Dashboard / Explore) */
+.tier-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+/* Explore other tiers button */
+.tier-explore {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.tier-explore .btn-outline {
+  background: transparent;
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  padding: 16px 40px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.tier-explore .btn-outline:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* Desktop alignment for tier buttons */
+.tier-actions,
+.tier-explore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.tier-actions a,
+.tier-explore a {
+  width: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* Mobile-only adjustments */
+@media (max-width: 768px) {
+  .tier-actions a,
+  .tier-explore a {
+    width: 100%;
+    max-width: 360px;
+    box-sizing: border-box;
+    text-align: center;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
 
 /* Payment Section */
 .payment-section {
