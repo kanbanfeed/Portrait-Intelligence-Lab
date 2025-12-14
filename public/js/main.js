@@ -21,9 +21,9 @@ document.addEventListener("DOMContentLoaded", () => {
   navLinks.addEventListener("click", (e) => {
     e.stopPropagation();
   });
-  // ===============================
+  
   // DESKTOP ACTIVE TAB HIGHLIGHT
-  // ===============================
+
   const navItems = navLinks.querySelectorAll("a");
   const currentPath = window.location.pathname;
 
