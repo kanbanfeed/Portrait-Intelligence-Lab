@@ -178,6 +178,25 @@ app.get("/api/user", (req, res) => {
   res.json(getUserData(req));
 });
 
+app.post("/api/micro-action", (req, res) => {
+  const user = getUserData(req);
+  const { index, completed } = req.body;
+
+  if (typeof index !== "number" || index < 0 || index >= 7) {
+    return res.status(400).json({ success: false, error: "Invalid index" });
+  }
+
+  user.microActions[index] = completed === true;
+
+  const allComplete = user.microActions.every(v => v === true);
+  if (allComplete && !user.tiers.includes("resource-unlocked")) {
+    user.tiers.push("resource-unlocked");
+  }
+
+  res.json({ success: true, user });
+});
+
+
 /* ================== SERVER ================== */
 
 app.listen(PORT, () => {
