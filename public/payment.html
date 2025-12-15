@@ -34,18 +34,18 @@
             <div class="payment-section" style="background: transparent; padding: 0;">
                 <div style="text-align: center; margin-bottom: 2rem;">
                     <div style="font-size: 3rem; margin-bottom: 1rem;">💳</div>
-                    <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">Secure Payment</h2>
+                    <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">Secure Payment via Stripe</h2>
                     <p style="color: var(--text-light);">
-                        Your payment is processed securely through Razorpay
+                        Your payment is processed securely. We only use Stripe.
                     </p>
                 </div>
 
                 <div style="text-align: center; margin: 2rem 0;">
-                    <button class="payment-btn-razorpay-single" id="razorpay-btn">
+                    <button class="payment-btn-razorpay-single" id="stripe-btn">
                         <span style="font-size: 1.25rem; margin-right: 0.5rem;">🔒</span>
-                        Pay with Razorpay
+                        Pay with Stripe
                     </button>
-                </div>
+                    </div>
 
                 <div style="background: var(--light); padding: 1.5rem; border-radius: 0.5rem; margin-top: 2rem;">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
@@ -74,6 +74,7 @@
         // Get tier from URL
         const urlParams = new URLSearchParams(window.location.search);
         const tier = urlParams.get('tier');
+        // Define TIER_DETAILS locally for client-side display
         const tierMap = {
             '9.99': { name: 'Starter Tier', price: '$9.99' },
             '19.99': { name: 'Professional Tier', price: '$19.99' },
@@ -92,39 +93,44 @@
             document.getElementById('tier-info').style.color = 'var(--danger)';
         }
 
-        // Razorpay button handler
-        document.getElementById('razorpay-btn').addEventListener('click', async () => {
+        // Stripe button handler (Simulated)
+        document.getElementById('stripe-btn').addEventListener('click', async () => {
             if (!tier) {
                 showAlert('Invalid tier selection', 'warning');
                 return;
             }
             
             // Disable button during processing
-            const btn = document.getElementById('razorpay-btn');
+            const btn = document.getElementById('stripe-btn');
             btn.disabled = true;
             btn.style.opacity = '0.6';
-            btn.textContent = 'Processing...';
+            btn.textContent = 'Contacting Stripe...';
             
-            // In production, this would redirect to Razorpay Checkout
-            // For now, simulate payment success
+            // In production, this would initiate Stripe Checkout/Payment Element setup
+            // For now, simulate successful payment intent confirmation
             try {
-                const paymentId = 'razorpay_' + Date.now();
+                // Generate a simulated Stripe Payment Intent ID
+                const paymentId = 'pi_' + Math.random().toString(36).substring(2, 15) + Date.now();
+                
+                // Simulate the backend fulfillment call (this would normally be a webhook)
+                // We use the existing confirmPayment wrapper function (assuming it's in app.js)
+                // Function confirmPayment(tier, paymentId) needs to be in public/js/app.js
                 const result = await confirmPayment(tier, paymentId);
                 
                 if (result && result.success) {
                     // Redirect to confirmation page
-                    window.location.href = `/payment/confirm?tier=${tier}&paymentId=${paymentId}&method=Razorpay`;
+                    window.location.href = `/payment/confirm?tier=${tier}&paymentId=${paymentId}&method=Stripe`;
                 } else {
                     showAlert('Payment failed. Please try again.', 'warning');
                     btn.disabled = false;
                     btn.style.opacity = '1';
-                    btn.innerHTML = '<span style="font-size: 1.25rem; margin-right: 0.5rem;">🔒</span>Pay with Razorpay';
+                    btn.innerHTML = '<span style="font-size: 1.25rem; margin-right: 0.5rem;">🔒</span>Pay with Stripe (Test Mode)';
                 }
             } catch (error) {
                 showAlert('Payment error. Please try again.', 'warning');
                 btn.disabled = false;
                 btn.style.opacity = '1';
-                btn.innerHTML = '<span style="font-size: 1.25rem; margin-right: 0.5rem;">🔒</span>Pay with Razorpay';
+                btn.innerHTML = '<span style="font-size: 1.25rem; margin-right: 0.5rem;">🔒</span>Pay with Stripe (Test Mode)';
             }
         });
     </script>
