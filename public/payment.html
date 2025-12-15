@@ -1,138 +1,111 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment - Portrait Intelligence Lab™</title>
-    <link rel="stylesheet" href="/css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Payment - Portrait Intelligence Lab™</title>
+  <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="logo">Portrait Intelligence Lab™</div>
-            <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
-            <ul class="nav-links" id="nav-links">
-                <li><a href="/">Home</a></li>
-                <li><a href="/dashboard">Dashboard</a></li>
-                <li><a href="/micro-actions">Micro-Actions</a></li>
-                <li><a href="/battle/register">Battles</a></li>
-            </ul>
-        </div>
-    </nav>
 
-    <div class="payment-hero">
-        <div class="container">
-            <h1>Complete Your Purchase</h1>
-            <p id="tier-info" style="font-size: 1.25rem; margin-top: 1rem; opacity: 0.95;">
-                Processing your tier selection...
-            </p>
+<nav class="navbar">
+  <div class="nav-container">
+    <div class="logo">Portrait Intelligence Lab™</div>
+    <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/dashboard">Dashboard</a></li>
+      <li><a href="/micro-actions">Micro-Actions</a></li>
+      <li><a href="/battle/register">Battles</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="payment-hero">
+  <div class="container">
+    <h1>Complete Your Purchase</h1>
+    <p id="tier-info" style="font-size:1.25rem;margin-top:1rem;">
+      Processing your tier selection…
+    </p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="card" style="max-width:600px;margin:-3rem auto 2rem;">
+    <div class="payment-section" style="background:transparent;">
+      <div style="text-align:center;margin-bottom:2rem;">
+        <div style="font-size:3rem;">💳</div>
+        <h2>Secure Payment via Stripe</h2>
+        <p style="color:var(--text-light);">
+          Card payments processed securely by Stripe
+        </p>
+      </div>
+
+      <div style="text-align:center;margin:2rem 0;">
+        <button id="stripe-btn" class="payment-btn-razorpay-single">
+          🔒 Pay with Stripe
+        </button>
+      </div>
+
+      <div style="background:var(--light);padding:1.5rem;border-radius:0.5rem;">
+        <div style="display:flex;justify-content:space-between;">
+          <span>Tier:</span>
+          <strong id="tier-name-display"></strong>
         </div>
+        <div style="display:flex;justify-content:space-between;margin-top:0.5rem;">
+          <span>Amount:</span>
+          <strong id="tier-price-display"></strong>
+        </div>
+      </div>
+
+      <p style="font-size:0.85rem;margin-top:1.5rem;text-align:center;">
+        🔐 Payments are encrypted and PCI-compliant
+      </p>
     </div>
 
-    <div class="container">
-        <div class="card" style="max-width: 600px; margin: -3rem auto 2rem; position: relative; z-index: 10;">
-            <div class="payment-section" style="background: transparent; padding: 0;">
-                <div style="text-align: center; margin-bottom: 2rem;">
-                    <div style="font-size: 3rem; margin-bottom: 1rem;">💳</div>
-                    <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">Secure Payment via Stripe</h2>
-                    <p style="color: var(--text-light);">
-                        Your payment is processed securely. We only use Stripe.
-                    </p>
-                </div>
-
-                <div style="text-align: center; margin: 2rem 0;">
-                    <button class="payment-btn-razorpay-single" id="stripe-btn">
-                        <span style="font-size: 1.25rem; margin-right: 0.5rem;">🔒</span>
-                        Pay with Stripe
-                    </button>
-                    </div>
-
-                <div style="background: var(--light); padding: 1.5rem; border-radius: 0.5rem; margin-top: 2rem;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
-                        <span style="color: var(--text-light);">Tier:</span>
-                        <span style="font-weight: 600;" id="tier-name-display"></span>
-                    </div>
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <span style="color: var(--text-light);">Amount:</span>
-                        <span style="font-weight: 700; font-size: 1.25rem; color: var(--primary);" id="tier-price-display"></span>
-                    </div>
-                </div>
-
-                <p style="color: var(--text-light); font-size: 0.875rem; margin-top: 2rem; text-align: center; line-height: 1.6;">
-                    🔐 Your information is encrypted and secure. We use industry-standard SSL encryption to protect your data.
-                </p>
-            </div>
-
-            <div style="margin-top: 2rem; text-align: center;">
-                <a href="/" class="btn btn-secondary">Cancel</a>
-            </div>
-        </div>
+    <div style="text-align:center;margin-top:1.5rem;">
+      <a href="/" class="btn btn-secondary">Cancel</a>
     </div>
+  </div>
+</div>
 
-    <script src="/js/app.js"></script>
-    <script>
-        // Get tier from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const tier = urlParams.get('tier');
-        // Define TIER_DETAILS locally for client-side display
-        const tierMap = {
-            '9.99': { name: 'Starter Tier', price: '$9.99' },
-            '19.99': { name: 'Professional Tier', price: '$19.99' },
-            '199': { name: 'Access Pass', price: '$199' },
-            '999': { name: 'Elite Challenge', price: '$999' },
-            '9999': { name: 'The Circle', price: '$9,999' }
-        };
+<script>
+const params = new URLSearchParams(window.location.search);
+const tier = params.get("tier");
 
-        if (tier && tierMap[tier]) {
-            const tierInfo = tierMap[tier];
-            document.getElementById('tier-info').textContent = `You're purchasing: ${tierInfo.name}`;
-            document.getElementById('tier-name-display').textContent = tierInfo.name;
-            document.getElementById('tier-price-display').textContent = tierInfo.price;
-        } else {
-            document.getElementById('tier-info').textContent = 'Invalid tier selection';
-            document.getElementById('tier-info').style.color = 'var(--danger)';
-        }
+const tiers = {
+  "9.99": { name: "Starter Tier", price: "$9.99" },
+  "19.99": { name: "Professional Tier", price: "$19.99" },
+  "199": { name: "Access Pass", price: "$199" },
+  "999": { name: "Elite Challenge", price: "$999" },
+  "9999": { name: "The Circle", price: "$9,999" }
+};
 
-        // Stripe button handler (Simulated)
-        document.getElementById('stripe-btn').addEventListener('click', async () => {
-            if (!tier) {
-                showAlert('Invalid tier selection', 'warning');
-                return;
-            }
-            
-            // Disable button during processing
-            const btn = document.getElementById('stripe-btn');
-            btn.disabled = true;
-            btn.style.opacity = '0.6';
-            btn.textContent = 'Contacting Stripe...';
-            
-            // In production, this would initiate Stripe Checkout/Payment Element setup
-            // For now, simulate successful payment intent confirmation
-            try {
-                // Generate a simulated Stripe Payment Intent ID
-                const paymentId = 'pi_' + Math.random().toString(36).substring(2, 15) + Date.now();
-                
-                // Simulate the backend fulfillment call (this would normally be a webhook)
-                // We use the existing confirmPayment wrapper function (assuming it's in app.js)
-                // Function confirmPayment(tier, paymentId) needs to be in public/js/app.js
-                const result = await confirmPayment(tier, paymentId);
-                
-                if (result && result.success) {
-                    // Redirect to confirmation page
-                    window.location.href = `/payment/confirm?tier=${tier}&paymentId=${paymentId}&method=Stripe`;
-                } else {
-                    showAlert('Payment failed. Please try again.', 'warning');
-                    btn.disabled = false;
-                    btn.style.opacity = '1';
-                    btn.innerHTML = '<span style="font-size: 1.25rem; margin-right: 0.5rem;">🔒</span>Pay with Stripe (Test Mode)';
-                }
-            } catch (error) {
-                showAlert('Payment error. Please try again.', 'warning');
-                btn.disabled = false;
-                btn.style.opacity = '1';
-                btn.innerHTML = '<span style="font-size: 1.25rem; margin-right: 0.5rem;">🔒</span>Pay with Stripe (Test Mode)';
-            }
-        });
-    </script>
+if (!tiers[tier]) {
+  document.getElementById("tier-info").textContent = "Invalid tier";
+} else {
+  document.getElementById("tier-info").textContent =
+    `You're purchasing: ${tiers[tier].name}`;
+  document.getElementById("tier-name-display").textContent = tiers[tier].name;
+  document.getElementById("tier-price-display").textContent = tiers[tier].price;
+}
+
+document.getElementById("stripe-btn").addEventListener("click", async () => {
+  const btn = document.getElementById("stripe-btn");
+  btn.disabled = true;
+  btn.textContent = "Redirecting…";
+
+  const res = await fetch("/api/stripe/create-checkout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tier })
+  });
+
+  const data = await res.json();
+  if (data.url) window.location.href = data.url;
+  else alert("Stripe error");
+});
+</script>
+
 </body>
 </html>
