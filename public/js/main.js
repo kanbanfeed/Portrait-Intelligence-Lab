@@ -3,15 +3,15 @@
 document.addEventListener("DOMContentLoaded", () => {
     const menuBtn = document.getElementById("mobile-menu-btn");
     const navLinks = document.getElementById("nav-links");
-    const navContainer = document.querySelector(".nav-container"); // Added for context checking
+    const navContainer = document.querySelector(".nav-container");
 
     if (!menuBtn || !navLinks) return;
 
-    // Toggle menu
+    // --- FIX: Streamlined Mobile Menu Toggle Logic ---
     menuBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         navLinks.classList.toggle("active");
-        menuBtn.classList.toggle("active"); // Use 'active' for consistency
+        menuBtn.classList.toggle("active"); 
     });
 
     // Close when clicking outside
@@ -29,27 +29,38 @@ document.addEventListener("DOMContentLoaded", () => {
         e.stopPropagation();
     });
     
-    // DESKTOP ACTIVE TAB HIGHLIGHT
+    // --- DESKTOP ACTIVE TAB HIGHLIGHT (Simplified) ---
 
     const navItems = navLinks.querySelectorAll("a");
     const currentPath = window.location.pathname;
+    let homeLinkActive = false;
 
     navItems.forEach(link => {
-        // Match exact path or base path (e.g., /tier/9.99 should highlight /tier/*)
         const linkPath = link.getAttribute("href");
         
+        // 1. Match exact path
         if (currentPath === linkPath) {
             link.classList.add("active");
-        } else if (currentPath.startsWith('/tier/') && linkPath === '/') {
-             // Home link is the catch-all for tiers page
-        } else if (currentPath.startsWith('/payment/') && linkPath === '/') {
-             // Home link is the catch-all for payment page
+            homeLinkActive = true;
         }
-        
-        // Optional: update active on click (desktop UX)
-        link.addEventListener("click", () => {
-            navItems.forEach(l => l.classList.remove("active"));
-            link.classList.add("active");
+
+        // 2. Handle specific deep links (e.g., /tier/* and /payment/* are usually considered under Home/Root context)
+        if ((currentPath.startsWith('/tier/') || currentPath.startsWith('/payment/') || currentPath.startsWith('/circle/')) && linkPath === '/') {
+            // Check if any other link is already active. If not, the current page belongs to the 'Home' family.
+            // Since we want to highlight the specific link if possible, we handle the active state outside this block.
+        }
+    });
+
+    // Optional: Keep active state simple by ensuring the correct link is highlighted.
+    // If no specific link matches (e.g., on a Tier or Payment detail page), we don't force 'Home' to be active unless explicitly desired.
+
+    // If the mobile menu is open, and a link is clicked, close the menu (better mobile UX)
+    navLinks.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                navLinks.classList.remove('active');
+                menuBtn.classList.remove('active');
+            }
         });
     });
 });
