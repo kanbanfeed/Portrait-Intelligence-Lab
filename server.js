@@ -6,6 +6,7 @@ const { sendWelcomeEmail } = require("./utils/brevoMailer");
 const express = require("express");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
+const session = require("express-session");
 const path = require("path");
 
 const jwt = require("jsonwebtoken");
@@ -32,23 +33,33 @@ const TIER_CONFIG = {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
-
+app.use(
+  session({
+    secret: "portrait-intelligence-secret-key-2024",
+    resave: false,
+    saveUninitialized: true
+  })
+);
 
 app.use(express.static(path.join(__dirname, "public")));
 
 
 function requireUser(req) {
-  const token = req.cookies?.auth_token;
-
-  if (!token) return null;
-
-  try {
-    return jwt.verify(token, process.env.MAGIC_LINK_SECRET);
-  } catch {
-    return null;
+  // 1️⃣ JWT user (paid users)
+  const token = req.cookies.auth_token;
+  if (token) {
+    try {
+      return jwt.verify(token, process.env.MAGIC_LINK_SECRET);
+    } catch (err) {}
   }
-}
 
+  // 2️⃣ Session user (free users)
+  if (req.session && req.session.userId) {
+    return getUserData(req);
+  }
+
+  return null;
+}
 
 
 
@@ -135,15 +146,13 @@ app.get("/payment/confirm", async (req, res) => {
 
       if (customerEmail) {
         // 🔐 PERMANENT JWT MAGIC TOKEN
-       user.battles.push({ division, date: Date.now() });
-
-const newToken = jwt.sign(user, process.env.MAGIC_LINK_SECRET);
-res.cookie("auth_token", newToken, {
-  httpOnly: true,
-  secure: true,
-  sameSite: "none"
-});
-
+        const token = jwt.sign(
+          {
+            email: customerEmail,
+            tiers: user.tiers
+          },
+          process.env.MAGIC_LINK_SECRET
+        );
 
         const accessLink = `${req.protocol}://${req.get(
           "host"
@@ -196,12 +205,11 @@ app.get("/magic-access", (req, res) => {
     const data = jwt.verify(token, process.env.MAGIC_LINK_SECRET);
 
     // ✅ Persist auth for future requests
-   res.cookie("auth_token", token, {
-  httpOnly: true,
-  secure: true,
-  sameSite: "none"
-});
-
+    res.cookie("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax"
+    });
 
     return res.redirect("/dashboard");
   } catch (err) {
