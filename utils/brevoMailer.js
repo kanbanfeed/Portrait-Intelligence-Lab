@@ -1,35 +1,29 @@
 const SibApiV3Sdk = require("sib-api-v3-sdk");
 
 const client = SibApiV3Sdk.ApiClient.instance;
-const apiKey = client.authentications["api-key"];
-apiKey.apiKey = process.env.BREVO_API_KEY;
+client.authentications["api-key"].apiKey = process.env.BREVO_API_KEY;
 
-const transactionalApi = new SibApiV3Sdk.TransactionalEmailsApi();
+const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
-async function sendWelcomeEmail({ toEmail, tierName }) {
-  return transactionalApi.sendTransacEmail({
+async function sendWelcomeEmail({ toEmail, tierName, accessLink }) {
+  return apiInstance.sendTransacEmail({
+    to: [{ email: toEmail }],
     sender: {
       email: process.env.EMAIL_FROM_ADDRESS,
       name: "Portrait Intelligence Lab"
     },
-    to: [
-      {
-        email: toEmail
-      }
-    ],
-    subject: "Welcome to Portrait Intelligence Lab",
+    subject: "Your access to Portrait Intelligence Lab",
     htmlContent: `
-      <h2>Portrait Intelligence Lab</h2>
-      <p>Thank you for your payment.</p>
-      <p><strong>Membership Tier:</strong> ${tierName}</p>
+      <h2>Welcome to Portrait Intelligence Lab™</h2>
+      <p>Thank you for your purchase.</p>
+      <p><strong>Tier Activated:</strong> ${tierName}</p>
       <p>Your access is now active.</p>
       <p>
-        👉 <a href="https://portrait-intelligence-lab.vercel.app/dashboard">
-        Go to your dashboard
-        </a>
+        👉 <a href="${accessLink}">Access your dashboard</a>
       </p>
+      <p><strong>Save this email.</strong> This link gives you access.</p>
       <br/>
-      <p>— Portrait Intelligence Lab</p>
+      <p>— Portrait Intelligence Lab Team</p>
     `
   });
 }

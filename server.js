@@ -8,9 +8,13 @@ const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const path = require("path");
+const crypto = require("crypto"); 
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+
+
 
 /* ================== CONFIG ================== */
 
@@ -40,6 +44,7 @@ app.use(express.static(path.join(__dirname, "public")));
 /* ================== USER STORE ================== */
 
 const userData = {};
+const magicLinks = {}; 
 
 function getUserData(req) {
   if (!req.session.userId) {
@@ -95,8 +100,6 @@ Object.keys(TIER_CONFIG).forEach(tier => {
 });
 
 /* ================== PAYMENT PAGES ================== */
-
-
 app.get("/payment/confirm", async (req, res) => {
   const { session_id, tier } = req.query;
   const user = getUserData(req);
@@ -110,6 +113,7 @@ app.get("/payment/confirm", async (req, res) => {
       await stripe.checkout.sessions.retrieve(session_id);
 
     if (checkoutSession.payment_status === "paid") {
+      // Unlock tier
       if (!user.tiers.includes(tier)) user.tiers.push(tier);
 
       if (tier === "9999") {
@@ -117,25 +121,37 @@ app.get("/payment/confirm", async (req, res) => {
         user.tiers.push("circle");
       }
 
-      // 🔔 SEND WELCOME EMAIL (Brevo)
-  try {
-    const customerEmail = checkoutSession.customer_details?.email;
+      // ================= MAGIC ACCESS LINK =================
+      const customerEmail = checkoutSession.customer_details?.email;
 
-    if (customerEmail) {
-      await sendWelcomeEmail({
-        toEmail: customerEmail,
-        tierName: TIER_CONFIG[tier].name
-      });
-    }
-  } catch (emailErr) {
-    console.error("Brevo email failed:", emailErr.message);
-    // IMPORTANT: Do NOT block user if email fails
-  }
+      if (customerEmail) {
+        const token = crypto.randomBytes(32).toString("hex");
 
-  return res.sendFile(
-    path.join(__dirname, "public", "payment-confirm.html")
-  );
+        magicLinks[token] = {
+          email: customerEmail,
+          tiers: [...user.tiers]
+        };
 
+        const accessLink = `${req.protocol}://${req.get(
+          "host"
+        )}/magic-access?token=${token}`;
+
+        // ================= SEND WELCOME EMAIL =================
+        try {
+          await sendWelcomeEmail({
+            toEmail: customerEmail,
+            tierName: TIER_CONFIG[tier].name,
+            accessLink
+          });
+        } catch (emailErr) {
+          console.error("Brevo email failed:", emailErr.message);
+          // Do NOT block user access if email fails
+        }
+      }
+
+      return res.sendFile(
+        path.join(__dirname, "public", "payment-confirm.html")
+      );
     }
   } catch (err) {
     console.error("Stripe verify error:", err);
@@ -143,6 +159,7 @@ app.get("/payment/confirm", async (req, res) => {
 
   res.redirect("/");
 });
+
 
 app.get("/payment/:tier", (req, res) => {
   const { tier } = req.params;
@@ -153,6 +170,33 @@ app.get("/payment/:tier", (req, res) => {
 
   res.sendFile(path.join(__dirname, "public", "payment.html"));
 });
+/* ================== MAGIC ACCESS ================== */
+
+app.get("/magic-access", (req, res) => {
+  const { token } = req.query;
+
+  if (!token || !magicLinks[token]) {
+    return res.status(403).send("Invalid or expired access link");
+  }
+
+  const data = magicLinks[token];
+
+  // Restore session
+  req.session.userId = "magic_" + token;
+
+  userData[req.session.userId] = {
+    tiers: data.tiers,
+    microActions: Array(7).fill(true),
+    battles: [],
+    circleInvite: data.tiers.includes("circle"),
+    pod: null,
+    name: "",
+    email: data.email
+  };
+
+  res.redirect("/dashboard");
+});
+
 
 /* ================== STRIPE CHECKOUT ================== */
 
