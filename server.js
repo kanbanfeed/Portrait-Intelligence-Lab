@@ -8,7 +8,9 @@ const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const path = require("path");
-const crypto = require("crypto"); 
+
+const jwt = require("jsonwebtoken");
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -44,7 +46,6 @@ app.use(express.static(path.join(__dirname, "public")));
 /* ================== USER STORE ================== */
 
 const userData = {};
-const magicLinks = {}; 
 
 function getUserData(req) {
   if (!req.session.userId) {
@@ -121,22 +122,23 @@ app.get("/payment/confirm", async (req, res) => {
         user.tiers.push("circle");
       }
 
-      // ================= MAGIC ACCESS LINK =================
       const customerEmail = checkoutSession.customer_details?.email;
 
       if (customerEmail) {
-        const token = crypto.randomBytes(32).toString("hex");
-
-        magicLinks[token] = {
-          email: customerEmail,
-          tiers: [...user.tiers]
-        };
+        // 🔐 PERMANENT JWT MAGIC TOKEN
+        const token = jwt.sign(
+          {
+            email: customerEmail,
+            tiers: user.tiers
+          },
+          process.env.MAGIC_LINK_SECRET
+        );
 
         const accessLink = `${req.protocol}://${req.get(
           "host"
         )}/magic-access?token=${token}`;
 
-        // ================= SEND WELCOME EMAIL =================
+        // 📧 SEND WELCOME EMAIL
         try {
           await sendWelcomeEmail({
             toEmail: customerEmail,
@@ -145,7 +147,6 @@ app.get("/payment/confirm", async (req, res) => {
           });
         } catch (emailErr) {
           console.error("Brevo email failed:", emailErr.message);
-          // Do NOT block user access if email fails
         }
       }
 
@@ -159,6 +160,7 @@ app.get("/payment/confirm", async (req, res) => {
 
   res.redirect("/");
 });
+
 
 
 app.get("/payment/:tier", (req, res) => {
@@ -175,26 +177,29 @@ app.get("/payment/:tier", (req, res) => {
 app.get("/magic-access", (req, res) => {
   const { token } = req.query;
 
-  if (!token || !magicLinks[token]) {
-    return res.status(403).send("Invalid or expired access link");
+  if (!token) {
+    return res.status(403).send("Invalid access link");
   }
 
-  const data = magicLinks[token];
+  try {
+    const data = jwt.verify(token, process.env.MAGIC_LINK_SECRET);
 
-  // Restore session
-  req.session.userId = "magic_" + token;
+    req.session.userId = "magic_" + data.email;
 
-  userData[req.session.userId] = {
-    tiers: data.tiers,
-    microActions: Array(7).fill(true),
-    battles: [],
-    circleInvite: data.tiers.includes("circle"),
-    pod: null,
-    name: "",
-    email: data.email
-  };
+    userData[req.session.userId] = {
+      tiers: data.tiers,
+      microActions: Array(7).fill(true),
+      battles: [],
+      circleInvite: data.tiers.includes("circle"),
+      pod: null,
+      name: "",
+      email: data.email
+    };
 
-  res.redirect("/dashboard");
+    return res.redirect("/dashboard");
+  } catch (err) {
+    return res.status(403).send("Invalid or expired access link");
+  }
 });
 
 
