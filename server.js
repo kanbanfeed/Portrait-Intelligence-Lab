@@ -1,6 +1,7 @@
 require("dotenv").config();
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const { sendWelcomeEmail } = require("./utils/brevoMailer");
 
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -116,9 +117,25 @@ app.get("/payment/confirm", async (req, res) => {
         user.tiers.push("circle");
       }
 
-      return res.sendFile(
-        path.join(__dirname, "public", "payment-confirm.html")
-      );
+      // 🔔 SEND WELCOME EMAIL (Brevo)
+  try {
+    const customerEmail = checkoutSession.customer_details?.email;
+
+    if (customerEmail) {
+      await sendWelcomeEmail({
+        toEmail: customerEmail,
+        tierName: TIER_CONFIG[tier].name
+      });
+    }
+  } catch (emailErr) {
+    console.error("Brevo email failed:", emailErr.message);
+    // IMPORTANT: Do NOT block user if email fails
+  }
+
+  return res.sendFile(
+    path.join(__dirname, "public", "payment-confirm.html")
+  );
+
     }
   } catch (err) {
     console.error("Stripe verify error:", err);
