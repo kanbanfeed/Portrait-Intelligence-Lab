@@ -282,22 +282,44 @@ app.get("/api/user", (req, res) => {
 
 
 app.post("/api/micro-action", (req, res) => {
-  const user = getUserData(req);
+  const user = requireUser(req);
+  if (!user) {
+    return res.status(401).json({ success: false });
+  }
+
   const { index, completed } = req.body;
 
   if (typeof index !== "number" || index < 0 || index >= 7) {
-    return res.status(400).json({ success: false, error: "Invalid index" });
+    return res.status(400).json({ success: false });
   }
 
-  user.microActions[index] = completed === true;
+  const microActions = user.microActions || Array(7).fill(false);
+  microActions[index] = completed === true;
 
-  const allComplete = user.microActions.every(v => v === true);
-  if (allComplete && !user.tiers.includes("resource-unlocked")) {
-    user.tiers.push("resource-unlocked");
-  }
+  const updatedUser = {
+    ...user,
+    microActions
+  };
 
-  res.json({ success: true, user });
+  const newToken = jwt.sign(
+    updatedUser,
+    process.env.MAGIC_LINK_SECRET
+  );
+
+  res.cookie("auth_token", newToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax"
+  });
+
+  res.json({
+    success: true,
+    user: {
+      microActions
+    }
+  });
 });
+
 
 app.post("/api/circle/pod", (req, res) => {
   const user = requireUser(req);
