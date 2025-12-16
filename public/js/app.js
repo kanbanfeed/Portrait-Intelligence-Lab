@@ -63,6 +63,7 @@ async function registerBattle(name, division) {
         const response = await fetch('/api/battle/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+             credentials: "include",
             body: JSON.stringify({ name, division })
         });
         if (!response.ok) throw new Error('Battle registration failed');
@@ -79,6 +80,7 @@ async function assignPod() {
     try {
         const response = await fetch('/api/circle/pod', {
             method: 'POST',
+             credentials: "include",
             headers: { 'Content-Type': 'application/json' }
         });
         if (!response.ok) throw new Error('Pod assignment failed');
@@ -96,6 +98,7 @@ async function confirmPayment(tier, paymentId) {
         const response = await fetch('/api/payment/confirm', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+             credentials: "include",
             body: JSON.stringify({ tier, paymentId })
         });
         if (!response.ok) throw new Error('Payment confirmation failed');
