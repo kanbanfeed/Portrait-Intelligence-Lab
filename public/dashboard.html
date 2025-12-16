@@ -94,25 +94,7 @@
 
     <script src="/js/app.js"></script>
     <script>
-        // Mobile Menu Toggling and Closure Logic (Ensure this is present for navigation to work)
-        document.addEventListener('DOMContentLoaded', () => {
-            
-
-            if (mobileMenuBtn && navLinks) {
-                mobileMenuBtn.addEventListener('click', () => {
-                    navLinks.classList.toggle('active');
-                });
-            }
-
-            document.addEventListener('click', (event) => {
-                const isClickInsideNav = navContainer.contains(event.target);
-                
-                if (navLinks && navLinks.classList.contains('active') && !isClickInsideNav) {
-                    navLinks.classList.remove('active');
-                }
-            });
-        });
-
+       
         async function loadDashboard() {
             const user = await fetchUserData();
             if (!user) {

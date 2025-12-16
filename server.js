@@ -43,6 +43,26 @@ app.use(
 
 app.use(express.static(path.join(__dirname, "public")));
 
+
+function requireUser(req) {
+  // 1️⃣ JWT user (paid users)
+  const token = req.cookies.auth_token;
+  if (token) {
+    try {
+      return jwt.verify(token, process.env.MAGIC_LINK_SECRET);
+    } catch (err) {}
+  }
+
+  // 2️⃣ Session user (free users)
+  if (req.session && req.session.userId) {
+    return getUserData(req);
+  }
+
+  return null;
+}
+
+
+
 /* ================== USER STORE ================== */
 
 const userData = {};
@@ -184,23 +204,19 @@ app.get("/magic-access", (req, res) => {
   try {
     const data = jwt.verify(token, process.env.MAGIC_LINK_SECRET);
 
-    req.session.userId = "magic_" + data.email;
-
-    userData[req.session.userId] = {
-      tiers: data.tiers,
-      microActions: Array(7).fill(true),
-      battles: [],
-      circleInvite: data.tiers.includes("circle"),
-      pod: null,
-      name: "",
-      email: data.email
-    };
+    // ✅ Persist auth for future requests
+    res.cookie("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax"
+    });
 
     return res.redirect("/dashboard");
   } catch (err) {
     return res.status(403).send("Invalid or expired access link");
   }
 });
+
 
 
 /* ================== STRIPE CHECKOUT ================== */
@@ -241,8 +257,21 @@ app.post("/api/stripe/create-checkout", async (req, res) => {
 /* ================== API ================== */
 
 app.get("/api/user", (req, res) => {
-  res.json(getUserData(req));
+  const jwtUser = requireUser(req);
+
+  if (jwtUser) {
+    // Ensure required fields exist
+    jwtUser.microActions = jwtUser.microActions || Array(7).fill(false);
+    jwtUser.battles = jwtUser.battles || [];
+    jwtUser.circleInvite = jwtUser.circleInvite || false;
+    jwtUser.pod = jwtUser.pod || null;
+
+    return res.json(jwtUser);
+  }
+
+  return res.json(getUserData(req));
 });
+
 
 app.post("/api/micro-action", (req, res) => {
   const user = getUserData(req);
@@ -262,9 +291,59 @@ app.post("/api/micro-action", (req, res) => {
   res.json({ success: true, user });
 });
 
+app.post("/api/circle/pod", (req, res) => {
+  const user = requireUser(req);
+
+  if (!user) {
+    return res.status(401).json({ success: false });
+  }
+
+  if (!user.tiers?.includes("9999") && !user.tiers?.includes("circle")) {
+    return res.status(403).json({ success: false });
+  }
+
+  if (!user.pod) {
+    user.pod = "POD-" + Math.floor(1000 + Math.random() * 9000);
+  }
+
+  res.json({ success: true, pod: user.pod });
+});
+
+
+
+
+app.post("/api/battle/register", (req, res) => {
+  const user = requireUser(req);
+
+  if (!user) {
+    return res.status(401).json({ success: false });
+  }
+
+  const { name } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ success: false, message: "Name required" });
+  }
+
+  let division = "Free";
+  if (user.tiers?.includes("9999") || user.tiers?.includes("circle")) division = "Circle";
+  else if (user.tiers?.includes("999")) division = "Elite";
+  else if (user.tiers?.includes("199")) division = "Access";
+
+  user.name = name;
+  user.battles = user.battles || [];
+  user.battles.push({ division, date: Date.now() });
+
+  res.json({ success: true, division });
+});
+
+
+
+
+
 
 /* ================== SERVER ================== */
 
 app.listen(PORT, () => {
   console.log(`🚀 Portrait Intelligence Lab running at http://localhost:${PORT}`);
-});
+});   

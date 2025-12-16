@@ -154,9 +154,9 @@
                 if (result && result.success) {
                     document.getElementById('battle-form').classList.add('hidden');
                     document.getElementById('success-message').classList.remove('hidden');
-                    document.getElementById('success-details').textContent = 
-                        `You've been registered for battle in the ${division.charAt(0).toUpperCase() + division.slice(1)} division.`;
-                } else {
+                  document.getElementById('success-details').textContent =
+  `Registered successfully in ${result.division} division.`;
+ } else {
                     showAlert('Registration failed. Please try again.', 'warning');
                 }
             });
