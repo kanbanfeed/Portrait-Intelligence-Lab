@@ -257,20 +257,28 @@ app.post("/api/stripe/create-checkout", async (req, res) => {
 /* ================== API ================== */
 
 app.get("/api/user", (req, res) => {
-  const jwtUser = requireUser(req);
+  const user = requireUser(req);
 
-  if (jwtUser) {
-    // Ensure required fields exist
-    jwtUser.microActions = jwtUser.microActions || Array(7).fill(false);
-    jwtUser.battles = jwtUser.battles || [];
-    jwtUser.circleInvite = jwtUser.circleInvite || false;
-    jwtUser.pod = jwtUser.pod || null;
-
-    return res.json(jwtUser);
+  if (!user) {
+    // Guest fallback (read-only)
+    return res.json({
+      tiers: ["free"],
+      microActions: Array(7).fill(false),
+      battles: [],
+      pod: null,
+      name: ""
+    });
   }
 
-  return res.json(getUserData(req));
+  return res.json({
+    tiers: user.tiers || [],
+    microActions: user.microActions || Array(7).fill(false),
+    battles: user.battles || [],
+    pod: user.pod || null,
+    name: user.name || ""
+  });
 });
+
 
 
 app.post("/api/micro-action", (req, res) => {
@@ -293,49 +301,75 @@ app.post("/api/micro-action", (req, res) => {
 
 app.post("/api/circle/pod", (req, res) => {
   const user = requireUser(req);
-
   if (!user) {
     return res.status(401).json({ success: false });
   }
 
-  if (!user.tiers?.includes("9999") && !user.tiers?.includes("circle")) {
+  if (!user.tiers.includes("9999") && !user.tiers.includes("circle")) {
     return res.status(403).json({ success: false });
   }
 
-  if (!user.pod) {
-    user.pod = "POD-" + Math.floor(1000 + Math.random() * 9000);
-  }
+  const pod = user.pod || `POD-${Math.floor(1000 + Math.random() * 9000)}`;
 
-  res.json({ success: true, pod: user.pod });
+  const updatedUser = {
+    ...user,
+    pod
+  };
+
+  const newToken = jwt.sign(
+    updatedUser,
+    process.env.MAGIC_LINK_SECRET
+  );
+
+  res.cookie("auth_token", newToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax"
+  });
+
+  res.json({ success: true, pod });
 });
+
 
 
 
 
 app.post("/api/battle/register", (req, res) => {
   const user = requireUser(req);
-
   if (!user) {
     return res.status(401).json({ success: false });
   }
 
   const { name } = req.body;
-
   if (!name) {
-    return res.status(400).json({ success: false, message: "Name required" });
+    return res.status(400).json({ success: false });
   }
 
   let division = "Free";
-  if (user.tiers?.includes("9999") || user.tiers?.includes("circle")) division = "Circle";
-  else if (user.tiers?.includes("999")) division = "Elite";
-  else if (user.tiers?.includes("199")) division = "Access";
+  if (user.tiers.includes("9999") || user.tiers.includes("circle")) division = "Circle";
+  else if (user.tiers.includes("999")) division = "Elite";
+  else if (user.tiers.includes("199")) division = "Access";
 
-  user.name = name;
-  user.battles = user.battles || [];
-  user.battles.push({ division, date: Date.now() });
+  const updatedUser = {
+    ...user,
+    name,
+    battles: [...(user.battles || []), { division, date: Date.now() }]
+  };
+
+  const newToken = jwt.sign(
+    updatedUser,
+    process.env.MAGIC_LINK_SECRET
+  );
+
+  res.cookie("auth_token", newToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax"
+  });
 
   res.json({ success: true, division });
 });
+
 
 
 
