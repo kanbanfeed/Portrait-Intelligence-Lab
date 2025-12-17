@@ -86,6 +86,8 @@ function getUserData(req) {
   return userData[req.session.userId];
 }
 
+
+
 /* ================== CORE PAGES ================== */
 
 app.get("/", (req, res) => {
@@ -279,13 +281,45 @@ app.get("/api/user", (req, res) => {
   });
 });
 
+function getOrCreateUser(req, res) {
+  const token = req.cookies?.auth_token;
+
+  // If JWT exists, use it
+  if (token) {
+    try {
+      return jwt.verify(token, process.env.MAGIC_LINK_SECRET);
+    } catch {
+      // fall through and create guest
+    }
+  }
+
+  // 👇 Create FREE guest user
+  const guestUser = {
+    tiers: ["free"],
+    microActions: Array(7).fill(false),
+    battles: [],
+    pod: null,
+    name: ""
+  };
+
+  const newToken = jwt.sign(
+    guestUser,
+    process.env.MAGIC_LINK_SECRET
+  );
+
+  res.cookie("auth_token", newToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax"
+  });
+
+  return guestUser;
+}
+
 
 
 app.post("/api/micro-action", (req, res) => {
-  const user = requireUser(req);
-  if (!user) {
-    return res.status(401).json({ success: false });
-  }
+  const user = getOrCreateUser(req, res);
 
   const { index, completed } = req.body;
 
@@ -314,9 +348,7 @@ app.post("/api/micro-action", (req, res) => {
 
   res.json({
     success: true,
-    user: {
-      microActions
-    }
+    microActions
   });
 });
 

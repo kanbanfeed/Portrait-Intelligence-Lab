@@ -150,10 +150,11 @@
                             icon.classList.add('hidden');
                         }
                         
-                        updateProgress(result.user.microActions);
+                       updateProgress(result.microActions);
                         
-                        // Check if all complete
-                        const allComplete = result.user.microActions.every(a => a === true);
+                       
+// Check if all complete
+                        const allComplete = result.microActions.every(a => a === true);
                         if (allComplete) {
                             document.getElementById('completion-message').classList.remove('hidden');
                             showAlert('Congratulations! You\'ve unlocked the $49 resource!', 'success');

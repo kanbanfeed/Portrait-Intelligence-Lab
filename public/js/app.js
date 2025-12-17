@@ -116,6 +116,14 @@ function calculateProgress(microActions) {
     const completedCount = microActions.filter(a => a === true).length;
     return Math.floor((completedCount / microActions.length) * 100);
 }
+function updateOverallProgress(microActions) {
+  const completedCount = microActions.filter(Boolean).length;
+  const percent = Math.round((completedCount / microActions.length) * 100);
+
+  document.querySelector(".progress-text").textContent = `${percent}%`;
+  document.querySelector(".progress-bar").style.width = `${percent}%`;
+}
+
 
 // Utility function to determine highest unlocked tier (for dashboard)
 function getHighestTier(tiers) {
