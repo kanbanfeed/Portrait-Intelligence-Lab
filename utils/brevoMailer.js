@@ -71,7 +71,7 @@ async function sendWelcomeEmail({ toEmail, tierName, accessLink }) {
              <div style="text-align:center; margin:36px 0;">
   <a href="${accessLink}"
      style="
-       background:#0ea5e9;
+       background:rgba(234, 118, 46, 0.9);
        color:#ffffff;
        padding:14px 32px;
        font-size:15px;
@@ -79,7 +79,7 @@ async function sendWelcomeEmail({ toEmail, tierName, accessLink }) {
        text-decoration:none;
        border-radius:10px;
        display:inline-block;
-       box-shadow:0 6px 14px rgba(14,165,233,0.35);
+       box-shadow:0 6px 14px rgba(234, 118, 46, 0.9);
      ">
     Access Your Dashboard
   </a>

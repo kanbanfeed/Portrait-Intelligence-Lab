@@ -40,7 +40,7 @@
                 <div id="tier-list-display" style="font-size: 0.9rem; color: var(--success); font-weight: 600; margin-top: 0.5rem;"></div>
                 
                 <div class="card-actions" id="tier-actions">
-    <a href="/" class="btn btn-primary">View All Tiers</a>
+    <a href="/" class="btn btn-primary btn-card">View All Tiers</a>
 </div>
 
             </div>
@@ -55,7 +55,7 @@
                     </div>
                 </div>
                 <div class="card-actions" id="tier-actions">
-                    <a href="/micro-actions" class="btn btn-primary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">View Micro-Actions</a>
+                    <a href="/micro-actions" class="btn btn-primary btn-card" >View Micro-Actions</a>
                 </div>
             </div>
 
@@ -65,7 +65,7 @@
                 <div class="status-description" id="battle-description">Your battle eligibility</div>
                 <div id="battle-info" style="margin-top: 1rem;"></div>
                 <div class="card-actions" id="tier-actions">
-                    <a href="/battle/register" class="btn btn-primary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Register for Battle</a>
+                    <a href="/battle/register" class="btn btn-primary btn-card" >Register for Battle</a>
                 </div>
             </div>
 
@@ -82,13 +82,26 @@
             </div>
         </div>
 
-        <div class="card" style="margin-top: 3rem;">
-            <h2 style="font-size: 1.75rem; margin-bottom: 1rem;">Quick Actions</h2>
-            <div class="quick-actions-wrap" style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                <a href="/micro-actions" class="btn btn-primary">Complete Micro-Actions</a>
-                <a href="/battle/register" class="btn btn-secondary">Join a Battle</a>
-                <a href="/" class="btn btn-success">Explore Tiers</a>
-            </div>
+       <div class="card" style="margin-top: 3rem;">
+    <h2 style="font-size: 1.75rem; margin-bottom: 1.5rem;">Quick Actions</h2>
+
+    <div class="quick-actions-wrap">
+        <a href="/micro-actions" class="quick-btn quick-btn-purple">
+            Complete Micro-Actions
+        </a>
+
+        <a href="/battle/register" class="quick-btn quick-btn-blue">
+            Join a Battle
+        </a>
+
+        <a href="/" class="quick-btn quick-btn-pink">
+            Explore Tiers
+        </a>
+    </div>
+</div>
+
+
+           
         </div>
     </div>
 
@@ -116,7 +129,7 @@
                 tierListDisplay.innerHTML = `Unlocked Tiers: ${tierList}`;
                 
                 // Ensure tierActionsDiv only holds the button
-                tierActionsDiv.innerHTML = `<a href="/" class="btn btn-primary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">View All Tiers</a>`;
+                tierActionsDiv.innerHTML = `<a href="/" class="btn btn-primary btn-card">View All Tiers</a>`;
 
             } else {
                 // Clear the list display if only one tier is present
@@ -153,13 +166,13 @@
                 if (user.pod) {
                     document.getElementById('circle-info').innerHTML = `<span class="badge badge-info">Pod: ${user.pod}</span>`;
                 } else {
-                    document.getElementById('circle-actions').innerHTML = '<a href="/circle/pod" class="btn btn-success" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Join Your Pod</a>';
+                    document.getElementById('circle-actions').innerHTML = '<a href="/circle/pod" class="btn btn-primary btn-card" >Join Your Pod</a>';
                 }
             } else {
                 document.getElementById('circle-status').textContent = 'Not a Member';
                 document.getElementById('circle-status').style.color = 'var(--text-light)';
                 document.getElementById('circle-description').textContent = 'Join The Circle for exclusive access';
-                document.getElementById('circle-actions').innerHTML = '<a href="/tier/9999" class="btn btn-success" style="font-size: 0.9rem; padding: 0.5rem 1rem;">Learn About The Circle</a>';
+                document.getElementById('circle-actions').innerHTML = '<a href="/tier/9999" class="btn btn-success" >Learn About The Circle</a>';
             }
         }
 
