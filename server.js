@@ -238,20 +238,45 @@ app.get("/magic-access", (req, res) => {
     const sessionUser = getUserData(req);
 
     // 🔥 MERGE DATA
-    const mergedUser = {
-      tiers: Array.from(new Set([
-        ...(sessionUser.tiers || []),
-        ...(jwtUser.tiers || [])
-      ])),
-      microActions: sessionUser.microActions || Array(7).fill(false),
-      battles: sessionUser.battles || [],
-      pod: sessionUser.pod || null,
-      name: sessionUser.name || "",
-      circleInvite:
-        sessionUser.circleInvite ||
-        jwtUser.tiers?.includes("9999") ||
-        jwtUser.tiers?.includes("circle")
-    };
+  const existingUserFromCookie =
+  req.cookies?.auth_token &&
+  jwt.verify(req.cookies.auth_token, process.env.MAGIC_LINK_SECRET);
+
+const mergedUser = {
+  tiers: Array.from(new Set([
+    ...(existingUserFromCookie?.tiers || []),
+    ...(sessionUser.tiers || []),
+    ...(jwtUser.tiers || [])
+  ])),
+
+  microActions:
+    existingUserFromCookie?.microActions ||
+    sessionUser.microActions ||
+    Array(7).fill(false),
+
+  battles:
+    existingUserFromCookie?.battles ||
+    sessionUser.battles ||
+    [],
+
+  // ✅ THIS IS THE IMPORTANT FIX
+  pod:
+    existingUserFromCookie?.pod ||
+    sessionUser.pod ||
+    null,
+
+  name:
+    existingUserFromCookie?.name ||
+    sessionUser.name ||
+    "",
+
+  circleInvite:
+    existingUserFromCookie?.circleInvite ||
+    sessionUser.circleInvite ||
+    jwtUser.tiers?.includes("9999") ||
+    jwtUser.tiers?.includes("circle")
+};
+
 
     const newToken = jwt.sign(
       mergedUser,
@@ -282,7 +307,17 @@ app.post("/api/stripe/create-checkout", async (req, res) => {
     return res.status(400).json({ error: "Invalid tier" });
   }
 
-  const user = requireUser(req) || getUserData(req);
+let user = null;
+
+if (req.cookies?.auth_token) {
+  try {
+    user = jwt.verify(req.cookies.auth_token, process.env.MAGIC_LINK_SECRET);
+  } catch {}
+}
+
+if (!user) {
+  user = getUserData(req);
+}
 
   if (user?.tiers?.includes(tier)) {
     return res.status(400).json({
