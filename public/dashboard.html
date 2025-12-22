@@ -1,184 +1,215 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Portrait Intelligence Lab™</title>
-    <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
-    <nav class="navbar">
-  <div class="nav-container">
-    <div class="logo">
-      <a href="/">Portrait Intelligence Lab</a>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Dashboard - Portrait Intelligence Lab™</title>
+        <link rel="stylesheet" href="/css/style.css">
+    </head>
+    <body>
+        <nav class="navbar">
+    <div class="nav-container">
+        <div class="logo">
+        <a href="/">Portrait Intelligence Lab</a>
+        </div>
+
+        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <ul class="nav-links" id="nav-links">
+            <li><a href="/">Home</a></li>
+        <li><a href="/dashboard">Dashboard</a></li>
+        <li><a href="/micro-actions">Micro-Actions</a></li>
+        <li><a href="/battle/register">Battles</a></li>
+        </ul>
+        </div>
+    </nav>
+
+
+        <div class="container">
+            <h1 style="font-size: 2.5rem; margin: 2rem 0; color: var(--dark);">Your Dashboard</h1>
+            
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <h3>✔ Your Current Tier</h3>
+                    <div class="status-value" id="current-tier">Loading...</div>
+                    <div class="status-description" id="tier-description">Checking your tier status...</div>
+                    <div id="tier-list-display" style="font-size: 0.9rem; color: var(--success); font-weight: 600; margin-top: 0.5rem;"></div>
+                    
+                    <div class="card-actions" id="tier-actions">
+        <a href="/" class="btn btn-primary btn-card">View All Tiers</a>
     </div>
 
-    <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Menu">
-           <span></span>
-          <span></span>
-          <span></span>
-    </button>
+                </div>
 
-      <ul class="nav-links" id="nav-links">
-        <li><a href="/">Home</a></li>
-       <li><a href="/dashboard">Dashboard</a></li>
-       <li><a href="/micro-actions">Micro-Actions</a></li>
-       <li><a href="/battle/register">Battles</a></li>
-      </ul>
-     </div>
-  </nav>
-
-
-    <div class="container">
-        <h1 style="font-size: 2.5rem; margin: 2rem 0; color: var(--dark);">Your Dashboard</h1>
-        
-        <div class="dashboard-grid">
-            <div class="dashboard-card">
-                <h3>✔ Your Current Tier</h3>
-                <div class="status-value" id="current-tier">Loading...</div>
-                <div class="status-description" id="tier-description">Checking your tier status...</div>
-                <div id="tier-list-display" style="font-size: 0.9rem; color: var(--success); font-weight: 600; margin-top: 0.5rem;"></div>
-                
-                <div class="card-actions" id="tier-actions">
-    <a href="/" class="btn btn-primary btn-card">View All Tiers</a>
-</div>
-
-            </div>
-
-            <div class="dashboard-card">
-                <h3>✔ Your Progress</h3>
-                <div class="status-value" id="progress-percentage">0%</div>
-                <div class="status-description" id="progress-description">Micro-actions completed</div>
-                <div class="progress-container" style="margin-top: 1rem;">
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progress-bar" style="width: 0%;"></div>
+                <div class="dashboard-card">
+                    <h3>✔ Your Progress</h3>
+                    <div class="status-value" id="progress-percentage">0%</div>
+                    <div class="status-description" id="progress-description">Micro-actions completed</div>
+                    <div class="progress-container" style="margin-top: 1rem;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-bar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                    <div class="card-actions" id="tier-actions">
+                        <a href="/micro-actions" class="btn btn-primary btn-card" >View Micro-Actions</a>
                     </div>
                 </div>
-                <div class="card-actions" id="tier-actions">
-                    <a href="/micro-actions" class="btn btn-primary btn-card" >View Micro-Actions</a>
-                </div>
-            </div>
 
-            <div class="dashboard-card">
-                <h3>✔ Battles You Can Join</h3>
-                <div class="status-value" id="battle-status">Checking...</div>
-                <div class="status-description" id="battle-description">Your battle eligibility</div>
-                <div id="battle-info" style="margin-top: 1rem;"></div>
-                <div class="card-actions" id="tier-actions">
-                    <a href="/battle/register" class="btn btn-primary btn-card" >Register for Battle</a>
+                <div class="dashboard-card">
+                    <h3>✔ Battles You Can Join</h3>
+                    <div class="status-value" id="battle-status">Checking...</div>
+                    <div class="status-description" id="battle-description">Your battle eligibility</div>
+                    <div id="battle-info" style="margin-top: 1rem;"></div>
+                    <div class="card-actions" id="tier-actions">
+                        <a href="/battle/register" class="btn btn-primary btn-card" >Register for Battle</a>
+                    </div>
                 </div>
-            </div>
 
-            <div class="dashboard-card">
-               
-                <h3>✔ Circle Status</h3> 
-                <div class="status-value" id="circle-status">Checking...</div>
-                <div class="status-description" id="circle-description">Your Circle membership</div>
-                 
-                <div id="circle-info" style="margin-top: 1rem;"></div> 
-                <div class="card-actions" id="tier-actions">
-                <div style="margin-top: 1rem;" id="circle-actions"></div> </div>
+                <div class="dashboard-card">
                 
+                    <h3>✔ Circle Status</h3> 
+                    <div class="status-value" id="circle-status">Checking...</div>
+                    <div class="status-description" id="circle-description">Your Circle membership</div>
+                    
+                    <div id="circle-info" style="margin-top: 1rem;"></div> 
+                    <div class="card-actions" id="tier-actions">
+                    <div style="margin-top: 1rem;" id="circle-actions"></div> </div>
+                    
+                </div>
             </div>
-        </div>
 
-       <div class="card" style="margin-top: 3rem;">
-    <h2 style="font-size: 1.75rem; margin-bottom: 1.5rem;">Quick Actions</h2>
+        <div class="card" style="margin-top: 3rem;">
+        <h2 style="font-size: 1.75rem; margin-bottom: 1.5rem;">Quick Actions</h2>
 
-    <div class="quick-actions-wrap">
-        <a href="/micro-actions" class="quick-btn quick-btn-purple">
-            Complete Micro-Actions
-        </a>
+        <div class="quick-actions-wrap">
+            <a href="/micro-actions" class="quick-btn quick-btn-purple">
+                Complete Micro-Actions
+            </a>
 
-        <a href="/battle/register" class="quick-btn quick-btn-blue">
-            Join a Battle
-        </a>
+            <a href="/battle/register" class="quick-btn quick-btn-blue">
+                Join a Battle
+            </a>
 
-        <a href="/" class="quick-btn quick-btn-pink">
-            Explore Tiers
-        </a>
-    </div>
-</div>
-
-
-           
+            <a href="/" class="quick-btn quick-btn-pink">
+                Explore Tiers
+            </a>
         </div>
     </div>
 
-    <script src="/js/app.js"></script>
-    <script>
-       
-        async function loadDashboard() {
-            const user = await fetchUserData();
-            if (!user) {
-                showAlert('Error loading dashboard data', 'warning');
-                return;
-            }
 
-            // Current Tier
-            const highestTier = getHighestTier(user.tiers);
-            document.getElementById('current-tier').textContent = formatTierName(highestTier);
-            document.getElementById('tier-description').textContent = `You have access to ${user.tiers.length} tier(s)`;
             
-            const tierActionsDiv = document.getElementById('tier-actions');
-            const tierListDisplay = document.getElementById('tier-list-display');
+            </div>
+        </div>
 
-            if (user.tiers.length > 1) {
-                // MODIFIED JS: Use tierListDisplay element to show tiers
-                const tierList = user.tiers.map(t => formatTierName(t)).join(', ');
-                tierListDisplay.innerHTML = `Unlocked Tiers: ${tierList}`;
-                
-                // Ensure tierActionsDiv only holds the button
-                tierActionsDiv.innerHTML = `<a href="/" class="btn btn-primary btn-card">View All Tiers</a>`;
+       <script src="/js/app.js"></script>
 
-            } else {
-                // Clear the list display if only one tier is present
-                 tierListDisplay.innerHTML = '';
-            }
+<script>
+function resolveCurrentTier(tiers = []) {
+    if (!Array.isArray(tiers) || tiers.length === 0) {
+        return { key: "free", label: "Free Tier" };
+    }
 
-            // Progress
-            const progress = calculateProgress(user.microActions);
-            document.getElementById('progress-percentage').textContent = `${progress}%`;
-            document.getElementById('progress-bar').style.width = `${progress}%`;
-            const completed = user.microActions.filter(a => a === true).length;
-            document.getElementById('progress-description').textContent = `${completed} of 7 micro-actions completed`;
+    const tierPriority = [
+        { key: "9999", label: "The Circle" },
+        { key: "999", label: "Elite Challenge" },
+        { key: "199", label: "Access Pass" },
+        { key: "19.99", label: "Professional" },
+        { key: "9.99", label: "Starter" },
+        { key: "free", label: "Free Tier" }
+    ];
 
-            // Battle Status
-            const canJoinBattles = user.tiers.includes('199') || user.tiers.includes('999') || user.tiers.includes('9999') || user.tiers.includes('circle');
-            if (canJoinBattles) {
-                document.getElementById('battle-status').textContent = 'Eligible';
-                document.getElementById('battle-status').style.color = 'var(--success)';
-                document.getElementById('battle-description').textContent = 'You can register for battles';
-                if (user.battles && user.battles.length > 0) {
-                    document.getElementById('battle-info').innerHTML = `<span class="badge badge-success">Registered: ${user.battles.length} battle(s)</span>`;
-                }
-            } else {
-                document.getElementById('battle-status').textContent = 'Not Eligible';
-                document.getElementById('battle-status').style.color = 'var(--text-light)';
-                document.getElementById('battle-description').textContent = 'Upgrade to Access Pass or higher';
-            }
-
-            // Circle Status
-            if (user.circleInvite || user.tiers.includes('circle') || user.tiers.includes('9999')) {
-                document.getElementById('circle-status').textContent = 'Member';
-                document.getElementById('circle-status').style.color = 'var(--accent)';
-                document.getElementById('circle-description').textContent = 'Welcome to The Circle';
-                if (user.pod) {
-                    document.getElementById('circle-info').innerHTML = `<span class="badge badge-info">Pod: ${user.pod}</span>`;
-                } else {
-                    document.getElementById('circle-actions').innerHTML = '<a href="/circle/pod" class="btn btn-primary btn-card" >Join Your Pod</a>';
-                }
-            } else {
-                document.getElementById('circle-status').textContent = 'Not a Member';
-                document.getElementById('circle-status').style.color = 'var(--text-light)';
-                document.getElementById('circle-description').textContent = 'Join The Circle for exclusive access';
-                document.getElementById('circle-actions').innerHTML = '<a href="/tier/9999" class="btn btn-primary btn-card" >Learn About The Circle</a>';
-            }
+    for (const tier of tierPriority) {
+        if (tiers.includes(tier.key)) {
+            return tier;
         }
+    }
 
-        document.addEventListener('DOMContentLoaded', loadDashboard);
-    </script>
+    return { key: "free", label: "Free Tier" };
+}
 
-  <script src="/js/main.js"></script>
-</body>
-</html>
+async function loadDashboard() {
+    const user = await fetchUserData();
+    if (!user) return;
+
+    /* ===== Current Tier ===== */
+    const currentTier = resolveCurrentTier(user.tiers || []);
+    document.getElementById('current-tier').textContent = currentTier.label;
+    document.getElementById('tier-description').textContent =
+        `You have access to ${user.tiers.length} tier(s)`;
+
+    const tierListDisplay = document.getElementById('tier-list-display');
+    tierListDisplay.innerHTML = user.tiers
+        .map(t => resolveCurrentTier([t]).label)
+        .join(', ');
+
+    /* ===== Progress ===== */
+    const progress = calculateProgress(user.microActions);
+    document.getElementById('progress-percentage').textContent = `${progress}%`;
+    document.getElementById('progress-bar').style.width = `${progress}%`;
+    document.getElementById('progress-description').textContent =
+        `${user.microActions.filter(a => a).length} of 7 micro-actions completed`;
+
+    /* ===== Battles ===== */
+    const battleEligibleTiers = ['199', '999', '9999', 'circle'];
+    const canJoinBattles = user.tiers.some(t => battleEligibleTiers.includes(t));
+
+    if (canJoinBattles) {
+        document.getElementById('battle-status').textContent = 'Eligible';
+        document.getElementById('battle-status').style.color = 'var(--success)';
+        document.getElementById('battle-description').textContent =
+            'You can register for battles';
+
+        document.getElementById('battle-info').innerHTML =
+            user.battles?.length
+                ? `<span class="badge badge-success">Registered: ${user.battles.length} battle(s)</span>`
+                : '';
+    } else {
+        document.getElementById('battle-status').textContent = 'Not Eligible';
+        document.getElementById('battle-description').textContent =
+            'Upgrade to Access Pass or higher';
+    }
+
+    /* ===== Circle Status (FINAL & FIXED) ===== */
+    // INSIDE loadDashboard()
+
+const isCircleMember =
+  user.tiers?.includes("9999") ||
+  user.tiers?.includes("circle") ||
+  user.circleInvite === true;
+
+if (isCircleMember) {
+  document.getElementById("circle-status").textContent = "Member";
+  document.getElementById("circle-status").style.color = "var(--accent)";
+  document.getElementById("circle-description").textContent =
+    "Welcome to The Circle";
+
+  if (user.pod) {
+    document.getElementById("circle-info").innerHTML =
+      `<span class="badge badge-info">Pod: ${user.pod}</span>`;
+    document.getElementById("circle-actions").innerHTML = "";
+  } else {
+    document.getElementById("circle-actions").innerHTML =
+      '<a href="/circle/pod" class="btn btn-primary btn-card">Join Your Pod</a>';
+  }
+} else {
+  document.getElementById("circle-status").textContent = "Not a Member";
+  document.getElementById("circle-description").textContent =
+    "Join The Circle for exclusive access";
+
+  document.getElementById("circle-actions").innerHTML =
+    '<a href="/tier/9999" class="btn btn-primary btn-card">Learn About The Circle</a>';
+}
+
+}
+
+document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+
+<script src="/js/main.js"></script>
+
+    </body>
+    </html>

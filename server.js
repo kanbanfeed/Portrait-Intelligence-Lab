@@ -137,28 +137,61 @@ app.get("/payment/confirm", async (req, res) => {
 
     if (checkoutSession.payment_status === "paid") {
       // Unlock tier
-      if (!user.tiers.includes(tier)) user.tiers.push(tier);
+     // Unlock tier safely
+if (!user.tiers.includes(tier)) {
+  user.tiers.push(tier);
+}
 
-      if (tier === "9999") {
-        user.circleInvite = true;
-        user.tiers.push("circle");
-      }
+if (tier === "9999" && !user.tiers.includes("circle")) {
+  user.circleInvite = true;
+  user.tiers.push("circle");
+}
+
+// 🔐 CRITICAL: issue UPDATED JWT immediately
+const updatedUser = {
+  ...user,
+  tiers: [...new Set(user.tiers)],
+  circleInvite: user.circleInvite || false,
+  microActions: user.microActions || Array(7).fill(false),
+  battles: user.battles || [],
+  pod: user.pod || null,
+  name: user.name || ""
+};
+
+const newToken = jwt.sign(
+  updatedUser,
+  process.env.MAGIC_LINK_SECRET
+);
+
+res.cookie("auth_token", newToken, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax"
+});
+
 
       const customerEmail = checkoutSession.customer_details?.email;
 
       if (customerEmail) {
         // 🔐 PERMANENT JWT MAGIC TOKEN
-        const token = jwt.sign(
-          {
-            email: customerEmail,
-            tiers: user.tiers
-          },
-          process.env.MAGIC_LINK_SECRET
-        );
+       const emailToken = jwt.sign(
+  {
+    tiers: updatedUser.tiers,
+    microActions: updatedUser.microActions,
+    battles: updatedUser.battles,
+    pod: updatedUser.pod,
+    name: updatedUser.name,
+    circleInvite: updatedUser.circleInvite
+  },
+  process.env.MAGIC_LINK_SECRET
+);
 
-        const accessLink = `${req.protocol}://${req.get(
-          "host"
-        )}/magic-access?token=${token}`;
+const accessLink = `${req.protocol}://${req.get(
+  "host"
+)}/magic-access?token=${emailToken}`;
+
+
+        
 
         // 📧 SEND WELCOME EMAIL
         try {
@@ -198,16 +231,34 @@ app.get("/payment/:tier", (req, res) => {
 
 app.get("/magic-access", (req, res) => {
   const { token } = req.query;
-
-  if (!token) {
-    return res.status(403).send("Invalid access link");
-  }
+  if (!token) return res.status(403).send("Invalid access link");
 
   try {
-    const data = jwt.verify(token, process.env.MAGIC_LINK_SECRET);
+    const jwtUser = jwt.verify(token, process.env.MAGIC_LINK_SECRET);
+    const sessionUser = getUserData(req);
 
-    // ✅ Persist auth for future requests
-    res.cookie("auth_token", token, {
+    // 🔥 MERGE DATA
+    const mergedUser = {
+      tiers: Array.from(new Set([
+        ...(sessionUser.tiers || []),
+        ...(jwtUser.tiers || [])
+      ])),
+      microActions: sessionUser.microActions || Array(7).fill(false),
+      battles: sessionUser.battles || [],
+      pod: sessionUser.pod || null,
+      name: sessionUser.name || "",
+      circleInvite:
+        sessionUser.circleInvite ||
+        jwtUser.tiers?.includes("9999") ||
+        jwtUser.tiers?.includes("circle")
+    };
+
+    const newToken = jwt.sign(
+      mergedUser,
+      process.env.MAGIC_LINK_SECRET
+    );
+
+    res.cookie("auth_token", newToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax"
@@ -221,6 +272,7 @@ app.get("/magic-access", (req, res) => {
 
 
 
+
 /* ================== STRIPE CHECKOUT ================== */
 
 app.post("/api/stripe/create-checkout", async (req, res) => {
@@ -229,6 +281,16 @@ app.post("/api/stripe/create-checkout", async (req, res) => {
   if (!TIER_CONFIG[tier]) {
     return res.status(400).json({ error: "Invalid tier" });
   }
+
+  const user = requireUser(req) || getUserData(req);
+
+  if (user?.tiers?.includes(tier)) {
+    return res.status(400).json({
+      error: "Tier already purchased"
+    });
+  }
+
+
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -256,13 +318,22 @@ app.post("/api/stripe/create-checkout", async (req, res) => {
   res.json({ url: session.url });
 });
 
-/* ================== API ================== */
-
 app.get("/api/user", (req, res) => {
-  const user = requireUser(req);
+  let user = null;
+
+  // Prefer JWT if present
+  if (req.cookies?.auth_token) {
+    try {
+      user = jwt.verify(req.cookies.auth_token, process.env.MAGIC_LINK_SECRET);
+    } catch {}
+  }
+
+  // Fallback to session user
+  if (!user && req.session?.userId && userData[req.session.userId]) {
+    user = userData[req.session.userId];
+  }
 
   if (!user) {
-    // Guest fallback (read-only)
     return res.json({
       tiers: ["free"],
       microActions: Array(7).fill(false),
@@ -277,9 +348,11 @@ app.get("/api/user", (req, res) => {
     microActions: user.microActions || Array(7).fill(false),
     battles: user.battles || [],
     pod: user.pod || null,
-    name: user.name || ""
+    name: user.name || "",
+    circleInvite: user.circleInvite || false
   });
 });
+
 
 function getOrCreateUser(req, res) {
   const token = req.cookies?.auth_token;
@@ -293,7 +366,6 @@ function getOrCreateUser(req, res) {
     }
   }
 
-  // 👇 Create FREE guest user
   const guestUser = {
     tiers: ["free"],
     microActions: Array(7).fill(false),
