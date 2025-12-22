@@ -95,16 +95,41 @@ document.getElementById("stripe-btn").addEventListener("click", async () => {
   btn.disabled = true;
   btn.textContent = "Redirecting…";
 
-  const res = await fetch("/api/stripe/create-checkout", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ tier })
-  });
+  try {
+    const res = await fetch("/api/stripe/create-checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tier })
+    });
 
-  const data = await res.json();
-  if (data.url) window.location.href = data.url;
-  else alert("Stripe error");
+    const data = await res.json();
+
+    // ✅ ALREADY PURCHASED
+    if (data.error === "Tier already purchased") {
+      alert("You have already purchased this tier.");
+      btn.disabled = false;
+      btn.textContent = "🔒 Pay with Stripe";
+      return;
+    }
+
+    // ✅ SUCCESS
+    if (data.url) {
+      window.location.href = data.url;
+      return;
+    }
+
+    // ❌ FALLBACK
+    alert("Unable to start payment. Please try again.");
+    btn.disabled = false;
+    btn.textContent = "🔒 Pay with Stripe";
+
+  } catch (err) {
+    alert("Network error. Please try again.");
+    btn.disabled = false;
+    btn.textContent = "🔒 Pay with Stripe";
+  }
 });
+
 </script>
 <script src="/js/main.js"></script>
 

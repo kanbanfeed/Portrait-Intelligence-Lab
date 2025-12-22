@@ -1575,3 +1575,28 @@ background: #2C3E50;;
         min-width: unset;
     }
 }
+
+/* Payment confirmation action buttons (mobile-safe) */
+.action-group-mobile {
+  display: flex;
+  flex-direction: column;   /* Stack on mobile */
+  gap: 12px;
+  margin-top: 1.5rem;
+}
+
+.action-group-mobile .btn {
+  width: 100%;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .action-group-mobile {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .action-group-mobile .btn {
+    width: auto;
+    min-width: 180px;
+  }
+}
