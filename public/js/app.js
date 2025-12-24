@@ -152,3 +152,28 @@ function formatTierName(tierKey) {
     };
     return map[tierKey] || tierKey;
 }
+
+
+/* ===============================
+   TIER PURCHASE UI HANDLER
+   =============================== */
+async function handleTierPurchaseState(tierKey, buttonId = "purchase-btn") {
+  const user = await fetchUserData();
+  if (!user || !Array.isArray(user.tiers)) return;
+
+  const btn = document.getElementById(buttonId);
+  if (!btn) return;
+
+  if (user.tiers.includes(tierKey)) {
+    btn.textContent = "Already Purchased";
+
+    // Remove all CTA color classes safely
+    btn.classList.remove("btn-primary", "btn-success");
+
+    // Apply disabled style
+    btn.classList.add("btn-secondary");
+    btn.style.opacity = "0.6";
+    btn.style.pointerEvents = "none";
+    btn.removeAttribute("href");
+  }
+}

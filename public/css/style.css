@@ -1128,7 +1128,11 @@ background: #2C3E50;;
  }
  
  .card {
-  padding: 1.5rem;
+   margin: 1rem auto !important;
+   max-width: 100%;
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+  
  }
  
  .grid-2,
@@ -1587,6 +1591,7 @@ background: #2C3E50;;
 .action-group-mobile .btn {
   width: 100%;
   text-align: center;
+  
 }
 
 @media (min-width: 768px) {
@@ -1598,5 +1603,257 @@ background: #2C3E50;;
   .action-group-mobile .btn {
     width: auto;
     min-width: 180px;
+    
   }
+}
+.footer {
+  background: #1e1b4b;
+  color: #c7c7d1;
+  padding: 1.5rem 2rem;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.footer-links a {
+  color: #e5e7eb;
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
+.footer-copy {
+  opacity: 0.8;
+}
+
+.legal-container {
+  max-width: 900px;
+  margin: 4rem auto;
+  padding: 0 1.5rem;
+}
+
+.last-updated {
+  color: #6b7280;
+  margin-bottom: 2rem;
+}
+
+.legal-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.75rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+}
+
+.legal-card h2 {
+  margin-bottom: 0.75rem;
+  color: #111827;
+}
+
+.site-footer {
+  background: #1e1b4b;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.footer-links a {
+  color: #e5e7eb;
+  margin: 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.footer-copy {
+  color: #9ca3af;
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+.battle-page {
+  min-height: calc(100vh - 160px);
+}
+
+
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 45px;
+    left: 50;
+    width: 100%;
+   
+    z-index: 1000;
+     background: linear-gradient(
+            135deg,
+            #0077B6 90%, 
+            #00B4D8 100%
+        );
+        backdrop-filter: none; 
+        -webkit-backdrop-filter: none;
+        
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+  }
+
+  .nav-links.active {
+    display: flex;
+  }
+}
+
+.nav-links a.active {
+  color: #fff;
+  font-weight: 600;
+  border-bottom: 2px solid #fff;
+}
+
+
+
+@media (max-width: 768px) {
+
+  .mobile-menu-btn {
+    display: block;
+  }
+
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 64px;
+    right: 12px;
+    width: 220px;
+    background: linear-gradient(135deg, #0077B6, #00B4D8);
+    border-radius: 12px;
+    padding: 8px;
+    z-index: 1000;
+  }
+
+  .nav-links.active {
+    display: flex;
+  }
+
+  .tier-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.navbar {
+  position: fixed;
+  padding: 1rem 2rem;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 3000;
+  background: #2c3e50;
+}
+@media (max-width: 768px) {
+  .payment-hero {
+    padding: 2rem 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .payment-hero h1 {
+    font-size: 1.6rem;
+  }
+
+  .payment-hero p {
+    font-size: 0.95rem;
+  }
+}
+/* ===============================
+   PAYMENT CONFIRM – MOBILE SAFE
+   =============================== */
+
+.payment-card {
+  max-width: 600px;
+  margin: 2rem auto;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .payment-card {
+    max-width: 100%;
+    margin: 1rem auto;
+    padding: 1.25rem;
+  }
+}
+/* Ultra-small screen safety */
+* {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.payment-hero,
+.payment-hero * {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* ==============================
+   PAYMENT CONFIRM – ALIGNMENT FIX
+   ============================== */
+
+.payment-confirm {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Stack payment details properly on small screens */
+@media (max-width: 480px) {
+
+  .payment-confirm > div > div {
+    padding: 1.25rem !important;
+  }
+
+  /* Convert rows to stacked layout */
+  .payment-confirm [style*="justify-content: space-between"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.4rem;
+    text-align: left;
+  }
+
+  /* Right-side values */
+  #payment-id,
+  #payment-method,
+  #tier-name {
+    text-align: left !important;
+    max-width: 100%;
+  }
+
+  /* Center success message */
+  .payment-confirm p {
+    text-align: center;
+  }
+
+}
+/* FIX: Force primary large button text to stay centered & single-line */
+.action-group-mobile .btn-primary {
+ 
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.action-group-mobile .btn-secondary {
+  
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Ensure consistent width for both buttons */
+.action-group-mobile .btn {
+  width: 100%;
+  max-width: 280px;
 }
