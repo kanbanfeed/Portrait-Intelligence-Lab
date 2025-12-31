@@ -57,9 +57,10 @@ const TIER_CONFIG = {
 
 
 /* ================== MIDDLEWARE ================== */
+/* ================== UPDATED STRIPE WEBHOOK ================== */
 app.post(
   "/api/stripe/webhook",
-  bodyParser.raw({ type: "application/json" }),
+  express.raw({ type: "application/json" }), // Use express.raw for signature verification
   async (req, res) => {
     const sig = req.headers["stripe-signature"];
     let event;
@@ -72,76 +73,54 @@ app.post(
       );
     } catch (err) {
       console.error("❌ Webhook signature error:", err.message);
-      return res.status(400).send("Webhook Error");
+      return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    console.log("🔥 WEBHOOK RECEIVED:", event.type);
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      
+      // FIX: Use 'user_id' because that's what you sent in metadata
+      const tier = session.metadata?.tier;
+      const userId = session.metadata?.user_id;
+      const userEmail = session.customer_details?.email;
 
-if (event.type === "checkout.session.completed") {
-  const session = event.data.object;
-  const tier = session.metadata?.tier;
-  const userId = session.metadata?.user_id;
-  const userEmail = session.customer_details?.email;
+      console.log(`Processing fulfillment for User: ${userId}, Tier: ${tier}`);
 
-  if (!tier || !userId || !userEmail) {
-    console.error("❌ Missing required metadata or email for webhook processing");
-    return res.json({ received: true });
-  }
+      if (!tier || !userId) {
+        console.error("❌ Missing metadata");
+        return res.status(400).send("Missing metadata");
+      }
 
-  // 1. Fetch current profile from Supabase
-  const { data: profile } = await supabaseAdmin
-    .from("profiles")
-    .select("tier, micro_actions, pod_id, name")
-    .eq("id", userId)
-    .single();
+      // 1. Fetch current profile from Supabase
+      const { data: profile, error: fetchError } = await supabaseAdmin
+        .from("profiles")
+        .select("tier")
+        .eq("id", userId)
+        .single();
 
-  // 2. Manage the tier array
-  let currentTiers = Array.isArray(profile?.tier) ? profile.tier : ["free"];
-  
-  // Only proceed if this is a new tier purchase for this user
-  if (!currentTiers.includes(tier)) {
-    currentTiers.push(tier);
+      if (fetchError) {
+        console.error("❌ Profile fetch failed:", fetchError);
+        return res.status(500).send("Database error");
+      }
 
-    // 3. Update the database with the new array
-    const { error } = await supabaseAdmin
-      .from("profiles")
-      .update({ tier: currentTiers }) 
-      .eq("id", userId);
+      // 2. Add new tier to the array
+      let currentTiers = Array.isArray(profile?.tier) ? profile.tier : ["free"];
+      if (!currentTiers.includes(tier)) {
+        currentTiers.push(tier);
 
-    if (error) {
-      console.error("❌ Supabase update failed:", error);
-    } else {
-      console.log(`✅ Tier array updated for ${userId}`);
+        // 3. Update Supabase
+        const { error: updateError } = await supabaseAdmin
+          .from("profiles")
+          .update({ tier: currentTiers })
+          .eq("id", userId);
 
-      // 4. Generate Magic Link for the email
-      const magicToken = jwt.sign(
-        {
-          tiers: currentTiers,
-          microActions: profile?.micro_actions || Array(7).fill(false),
-          pod: profile?.pod_id || null,
-          name: profile?.name || "",
-          circleInvite: currentTiers.includes("9999")
-        },
-        process.env.MAGIC_LINK_SECRET,
-        { expiresIn: '30d' }
-      );
-
-      const accessLink = `${req.protocol}://${req.get("host")}/magic-access?token=${magicToken}`;
-
-      // 5. Send the Welcome Email
-      try {
-        await sendWelcomeEmail({
-          toEmail: userEmail,
-          tierName: TIER_CONFIG[tier].name,
-          accessLink: accessLink
-        });
-        console.log(`📧 Welcome email sent to ${userEmail}`);
-      } catch (mailErr) {
-        console.error("❌ Failed to send welcome email:", mailErr);
+        if (updateError) {
+          console.error("❌ Supabase update failed:", updateError);
+        } else {
+          console.log(`✅ Tier updated successfully for ${userId}`);
+        }
       }
     }
-  }
-}
 
     res.json({ received: true });
   }
