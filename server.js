@@ -354,9 +354,8 @@ app.post("/api/stripe/create-checkout", async (req, res) => {
         }
       ],
       // CRITICAL: Change these from dynamic req.get("host") to your fixed Vercel URL
-      success_url: `https://portrait-intelligence-lab.vercel.app/payment-confirm.html?tier=${tier}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `https://portrait-intelligence-lab.vercel.app/tier/${tier}`,
-      
+     success_url: `https://portrait-intelligence-lab-frontend.vercel.app/payment-confirm.html?tier=${tier}&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `https://portrait-intelligence-lab-frontend.vercel.app/tier/${tier}`,
       // metadata is key for your webhook to identify WHO bought WHAT
       metadata: {
         tier: tier,
