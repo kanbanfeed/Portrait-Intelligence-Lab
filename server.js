@@ -328,25 +328,13 @@ const mergedUser = {
 
 const supabaseAdmin = require("./supabaseAdmin");
 
-/* ================== STRIPE CHECKOUT ================== */
+// server.js - Updated Checkout Route
 app.post("/api/stripe/create-checkout", async (req, res) => {
   const { tier, supabaseUserId } = req.body;
 
+  // 1. Validation
   if (!TIER_CONFIG[tier] || !supabaseUserId) {
-    return res.status(400).json({ error: "Invalid request" });
-  }
-
-  // 🔍 PREVENT DUPLICATE: Check if user already owns this specific tier in their array
-  const { data: profile } = await supabaseAdmin
-    .from("profiles")
-    .select("tier")
-    .eq("id", supabaseUserId)
-    .single();
-
-  const userTiers = Array.isArray(profile?.tier) ? profile.tier : [profile?.tier || "free"];
-
-  if (userTiers.includes(tier)) {
-    return res.status(400).json({ error: "You have already joined this tier" });
+    return res.status(400).json({ error: "Invalid tier or user ID" });
   }
 
   try {
@@ -365,14 +353,18 @@ app.post("/api/stripe/create-checkout", async (req, res) => {
           quantity: 1
         }
       ],
-      success_url: `${req.protocol}://${req.get("host")}/payment-confirm.html?tier=${tier}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.protocol}://${req.get("host")}/tier/${tier}`,
+      // CRITICAL: Change these from dynamic req.get("host") to your fixed Vercel URL
+      success_url: `https://portrait-intelligence-lab.vercel.app/payment-confirm.html?tier=${tier}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://portrait-intelligence-lab.vercel.app/tier/${tier}`,
+      
+      // metadata is key for your webhook to identify WHO bought WHAT
       metadata: {
-        tier,
-        user_id: supabaseUserId
+        tier: tier,
+        supabaseUserId: supabaseUserId // Ensure this matches your webhook logic
       }
     });
 
+    // Vercel/Render frontend expects a URL to redirect the user
     res.json({ url: session.url });
   } catch (err) {
     console.error("Stripe Session Error:", err);
