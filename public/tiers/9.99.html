@@ -46,11 +46,11 @@
                     One-time payment of $9.99. No recurring charges.
                 </p>
                 <div class="tier-actions">
-                    <a href="/payment/9.99?tier=9.99"
-   id="purchase-btn"
-   class="btn btn-success btn-large">
-   Join The Circle
-</a>
+   <a
+            id="purchase-btn"
+            class="btn btn-success btn-large">
+            Join This Tier
+                </a>
 
                     <a href="/dashboard" class="btn btn-secondary btn-large">View Dashboard</a>
                 <a href="/#tiers" class="btn btn-primary btn-large"> Explore Other Tiers</a>
@@ -63,14 +63,97 @@
     </div>
  <div id="footer-placeholder"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/supabase.js"></script>
+
 <script src="/js/layout.js"></script>
-    <script src="/js/app.js"></script>
-    <script src="/js/main.js"></script>
-    <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    handleTierPurchaseState("9.99");
-  });
+<script src="/js/header-auth.js"></script>
+<script src="/js/main.js"></script>
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const btn = document.getElementById("purchase-btn");
+  if (!btn) return;
+
+  const TIER_CODE = "9.99"; // Unique code for this page
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  /* ======================
+      NOT LOGGED IN
+  ====================== */
+  if (!user) {
+    btn.textContent = "Login & Join";
+    btn.onclick = () => {
+      window.location.href = "/auth/login.html";
+    };
+    return;
+  }
+
+  /* ======================
+      CHECK USER PROFILE
+  ====================== */
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("tier")
+    .eq("id", user.id)
+    .single();
+
+  if (error) {
+    console.error("Profile error:", error);
+    return;
+  }
+
+  // ✅ FIX: Handle tier as an array
+  // Check if the current TIER_CODE exists anywhere in the user's purchased tiers
+  const userTiers = Array.isArray(profile.tier) ? profile.tier : [profile.tier];
+  const hasPurchased = userTiers.includes(TIER_CODE);
+
+  if (hasPurchased) {
+    btn.textContent = "Already Purchased";
+    btn.classList.remove("btn-success");
+    btn.classList.add("btn-secondary"); // Changes color to Orange as requested
+    btn.disabled = true;
+    btn.style.opacity = "0.7";
+    btn.style.cursor = "not-allowed";
+    return;
+  }
+
+  /* ======================
+      PURCHASE LOGIC
+  ====================== */
+  btn.onclick = async () => {
+    btn.disabled = true;
+    btn.textContent = "Redirecting…";
+
+    try {
+      const res = await fetch("/api/stripe/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tier: TIER_CODE,
+          supabaseUserId: user.id
+        })
+      });
+
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL");
+      }
+    } catch (err) {
+      console.error(err);
+      btn.textContent = "Try Again";
+      btn.disabled = false;
+    }
+  };
+});
 </script>
+
+
 
 </body>
 </html>

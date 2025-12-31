@@ -78,84 +78,118 @@
         </div>
     </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/supabase.js"></script>
+<script src="/js/layout.js"></script>
+<script src="/js/header-auth.js"></script>
+    <script src="/js/main.js"></script>
+
     <script src="/js/app.js"></script>
-    <script>
-        async function loadMicroActions() {
-            const user = await fetchUserData();
-            if (!user) {
-                showAlert('Error loading micro-actions', 'warning');
-                return;
-            }
+ <script>
+/* =========================
+   CONSTANTS
+========================= */
+const TOTAL_ACTIONS = 7;
+const GUEST_KEY = "guest_micro_actions";
 
-            // Update checkboxes
-            user.microActions.forEach((completed, index) => {
-                const checkbox = document.getElementById(`action-${index}`);
-                const item = checkbox.closest('.checklist-item');
-                const icon = item.querySelector('.check-icon');
-                
-                checkbox.checked = completed;
-                if (completed) {
-                    item.classList.add('completed');
-                    icon.classList.remove('hidden');
-                } else {
-                    item.classList.remove('completed');
-                    icon.classList.add('hidden');
-                }
-            });
+/* =========================
+   LOAD MICRO ACTIONS
+========================= */
+async function loadMicroActions() {
+  const { data: { user } } = await supabase.auth.getUser();
 
-            // Update progress
-            updateProgress(user.microActions);
+  let actions = Array(TOTAL_ACTIONS).fill(false);
 
-            // Check if all complete
-            const allComplete = user.microActions.every(a => a === true);
-            if (allComplete) {
-                document.getElementById('completion-message').classList.remove('hidden');
-            }
+  /* =========================
+     👥 GUEST USER
+  ========================== */
+  if (!user) {
+    const saved = localStorage.getItem(GUEST_KEY);
+    if (saved) actions = JSON.parse(saved);
 
-            // Add event listeners
-            document.querySelectorAll('#micro-actions-list input[type="checkbox"]').forEach(checkbox => {
-                checkbox.addEventListener('change', async (e) => {
-                    const index = parseInt(e.target.dataset.index);
-                    const completed = e.target.checked;
-                    
-                    const result = await updateMicroAction(index, completed);
-                    if (result && result.success) {
-                        const item = e.target.closest('.checklist-item');
-                        const icon = item.querySelector('.check-icon');
-                        
-                        if (completed) {
-                            item.classList.add('completed');
-                            icon.classList.remove('hidden');
-                        } else {
-                            item.classList.remove('completed');
-                            icon.classList.add('hidden');
-                        }
-                        
-                       updateProgress(result.microActions);
-                        
-                       
-// Check if all complete
-                        const allComplete = result.microActions.every(a => a === true);
-                        if (allComplete) {
-                            document.getElementById('completion-message').classList.remove('hidden');
-                            showAlert('Congratulations! You\'ve unlocked the $49 resource!', 'success');
-                        }
-                    }
-                });
-            });
-        }
+    initCheckboxes(actions, null);
+    updateProgress(actions);
+    return;
+  }
 
-        function updateProgress(actions) {
-            const progress = calculateProgress(actions);
-            document.getElementById('progress-text').textContent = `${progress}%`;
-            document.getElementById('progress-bar').style.width = `${progress}%`;
-        }
+  /* =========================
+     👤 LOGGED-IN USER
+  ========================== */
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("micro_actions")
+    .eq("id", user.id)
+    .single();
 
-        document.addEventListener('DOMContentLoaded', loadMicroActions);
-    </script>
+  if (error) {
+    console.error("Load error:", error);
+    return;
+  }
+
+  actions = profile.micro_actions || actions;
+
+  initCheckboxes(actions, user.id);
+  updateProgress(actions, user.id);
+}
+
+/* =========================
+   INIT CHECKBOXES
+========================= */
+function initCheckboxes(actions, userId) {
+  actions.forEach((completed, index) => {
+    const checkbox = document.getElementById(`action-${index}`);
+    const item = checkbox.closest(".checklist-item");
+    const icon = item.querySelector(".check-icon");
+
+    checkbox.checked = completed;
+    icon.classList.toggle("hidden", !completed);
+
+    checkbox.onchange = async () => {
+      actions[index] = checkbox.checked;
+      icon.classList.toggle("hidden", !checkbox.checked);
+
+      updateProgress(actions, userId);
+
+      /* 👥 GUEST → localStorage */
+      if (!userId) {
+        localStorage.setItem(GUEST_KEY, JSON.stringify(actions));
+        return;
+      }
+
+    
+      const progress = Math.round(
+        (actions.filter(Boolean).length / actions.length) * 100
+      );
+
+      await supabase
+        .from("profiles")
+        .update({
+          micro_actions: actions,
+          micro_progress: progress
+        })
+        .eq("id", userId);
+    };
+  });
+}
+
+
+function updateProgress(actions, userId = null) {
+  const completed = actions.filter(Boolean).length;
+  const progress = Math.round((completed / actions.length) * 100);
+
+  document.getElementById("progress-text").textContent = `${progress}%`;
+  document.getElementById("progress-bar").style.width = `${progress}%`;
+}
+
+
+
+document.addEventListener("DOMContentLoaded", loadMicroActions);
+</script>
+
+
+
  <div id="footer-placeholder"></div>
 
-<script src="/js/layout.js"></script>
-    <script src="/js/main.js"></script>
+
 </body>
 </html>

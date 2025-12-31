@@ -67,6 +67,31 @@
     </div>
 
     <script src="/js/app.js"></script>
+<script>
+(async () => {
+    // 1. Wait for Supabase Auth to load
+    const { data: { user    } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    console.log("Payment confirmed for user:", user.id);
+
+    // 2. Call the refresh endpoint to update the JWT Cookie
+    const res = await fetch("/api/refresh-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+        console.log("Session refreshed, redirecting...");
+        window.location.href = "/dashboard";
+    } else {
+        console.error("Refresh failed:", data.error);
+    }
+})();
+</script>
+
     <script>
   // Get details from URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -97,6 +122,7 @@
  <div id="footer-placeholder"></div>
 
 <script src="/js/layout.js"></script>
+<script src="/js/header-auth.js"></script>
     <script src="/js/app.js"></script>
     <script src="/js/main.js"></script>
 </body>

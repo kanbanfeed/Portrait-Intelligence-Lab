@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (header) {
         header.innerHTML = html;
 
-        // 🔥 IMPORTANT: Notify that header is ready
+        // 🔥 CRITICAL: fire event AFTER header is in DOM
         document.dispatchEvent(new Event("headerLoaded"));
       }
     })

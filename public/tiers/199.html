@@ -1,75 +1,160 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Access Pass - Portrait Intelligence Lab™</title>
-    <link rel="stylesheet" href="/css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Access Pass - Portrait Intelligence Lab™</title>
+  <link rel="stylesheet" href="/css/style.css" />
 </head>
+
 <body>
-    <div id="header-placeholder"></div>
+  <div id="header-placeholder"></div>
 
-    <div class="container">
-        <div class="tier-hero">
-            <h1>Access Pass</h1>
-            <div class="tier-price">$199</div>
-            <p>Full platform access with premium features</p>
-        </div>
-
-        <div class="tier-content">
-            <div class="card">
-                <h2 style="font-size: 2rem; margin-bottom: 1rem; color: var(--dark);">About This Tier</h2>
-                <p class="tier-description">
-                    The Access Pass is your gateway to the complete Portrait Intelligence Lab™ experience. With full platform access, you'll unlock every resource, tool, and feature we offer. This tier is for those who are serious about transformation and want nothing held back.
-                </p>
-                <p class="tier-description">
-                    Includes 1-on-1 mentorship sessions, full content library access, and priority support. This is the tier for committed learners who want to maximize their potential.
-                </p>
-            </div>
-
-            <div class="what-you-get">
-                <h2>What You Get</h2>
-                <ul class="features-list">
-                    <li>Everything in Professional Tier</li>
-                    <li>Full content library access</li>
-                    <li>1-on-1 mentorship sessions</li>
-                    <li>Personalized learning path</li>
-                    <li>Battle registration eligibility</li>
-                    <li>VIP community access</li>
-                    <li>Lifetime content updates</li>
-                </ul>
-            </div>
-
-            <div class="unlock-section">
-                <h2>Unlock This Tier</h2>
-                <p style="font-size: 1.125rem; color: var(--text-light); margin-bottom: 2rem;">
-                    One-time payment of $199. No recurring charges.
-                </p>
-            <div class="tier-actions">
-<a href="/payment/199?tier=199"
-   id="purchase-btn"
-   class="btn btn-success btn-large">
-   Join The Circle
-</a>
-                <a href="/dashboard" class="btn btn-secondary btn-large" >View Dashboard</a>
-                 <a href="/#tiers" class="btn btn-primary btn-large"> Explore Other Tiers</a>
+  <div class="container">
+    <div class="tier-hero">
+      <h1>Access Pass</h1>
+      <div class="tier-price">$199</div>
+      <p>Full platform access with premium features</p>
     </div>
 
+    <div class="tier-content">
+      <div class="card">
+        <h2>About This Tier</h2>
+        <p class="tier-description">
+          The Access Pass unlocks the complete Portrait Intelligence Lab™
+          experience with full access to tools, battles, and mentorship.
+        </p>
+      </div>
 
-            </div>
+      <div class="what-you-get">
+        <h2>What You Get</h2>
+        <ul class="features-list">
+          <li>Everything in Professional Tier</li>
+          <li>Full content library access</li>
+          <li>1-on-1 mentorship</li>
+          <li>Battle eligibility</li>
+          <li>VIP community access</li>
+        </ul>
+      </div>
+
+      <div class="unlock-section">
+        <h2>Unlock This Tier</h2>
+        <p class="tier-note">
+          One-time payment of $199. No recurring charges.
+        </p>
+
+        <div class="tier-actions">
+          <!-- 🔑 NO href here -->
+          <a
+            id="purchase-btn"
+            class="btn btn-success btn-large">
+            Join This Tier
+                </a>
+
+          <a href="/dashboard" class="btn btn-secondary btn-large">
+            View Dashboard
+          </a>
+
+          <a href="/#tiers" class="btn btn-primary btn-large">
+            Explore Other Tiers
+          </a>
         </div>
+      </div>
     </div>
- <div id="footer-placeholder"></div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+
+  <!-- Layout -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/supabase.js"></script>
 
 <script src="/js/layout.js"></script>
+<script src="/js/header-auth.js"></script>
+<script src="/js/main.js"></script>
 
-    <script src="/js/app.js"></script>
-    <script src="/js/main.js"></script>
-    <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    handleTierPurchaseState("199");
-  });
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const btn = document.getElementById("purchase-btn");
+  if (!btn) return;
+
+  const TIER_CODE = "199"; // Unique code for this page
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  /* ======================
+      NOT LOGGED IN
+  ====================== */
+  if (!user) {
+    btn.textContent = "Login & Join";
+    btn.onclick = () => {
+      window.location.href = "/auth/login.html";
+    };
+    return;
+  }
+
+  /* ======================
+      CHECK USER PROFILE
+  ====================== */
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("tier")
+    .eq("id", user.id)
+    .single();
+
+  if (error) {
+    console.error("Profile error:", error);
+    return;
+  }
+
+  // ✅ FIX: Handle tier as an array
+  // Check if the current TIER_CODE exists anywhere in the user's purchased tiers
+  const userTiers = Array.isArray(profile.tier) ? profile.tier : [profile.tier];
+  const hasPurchased = userTiers.includes(TIER_CODE);
+
+  if (hasPurchased) {
+    btn.textContent = "Already Purchased";
+    btn.classList.remove("btn-success");
+    btn.classList.add("btn-secondary"); // Changes color to Orange as requested
+    btn.disabled = true;
+    btn.style.opacity = "0.7";
+    btn.style.cursor = "not-allowed";
+    return;
+  }
+
+  /* ======================
+      PURCHASE LOGIC
+  ====================== */
+  btn.onclick = async () => {
+    btn.disabled = true;
+    btn.textContent = "Redirecting…";
+
+    try {
+      const res = await fetch("/api/stripe/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tier: TIER_CODE,
+          supabaseUserId: user.id
+        })
+      });
+
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL");
+      }
+    } catch (err) {
+      console.error(err);
+      btn.textContent = "Try Again";
+      btn.disabled = false;
+    }
+  };
+});
 </script>
+
 
 </body>
 </html>

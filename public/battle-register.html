@@ -75,80 +75,121 @@
 </div>
 
     <script src="/js/app.js"></script>
-    <script>
-        async function loadBattlePage() {
-            const user = await fetchUserData();
-            if (!user) {
-                showAlert('Error loading page', 'warning');
-                return;
-            }
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/supabase.js"></script>
 
-            // Check eligibility
-            const canJoinBattles = user.tiers.includes('199') || user.tiers.includes('999') || user.tiers.includes('9999') || user.tiers.includes('circle');
-            
-            if (!canJoinBattles) {
-                document.getElementById('eligibility-check').classList.remove('hidden');
-                document.getElementById('battle-form').classList.add('hidden');
-                return;
-            }
+<script>
+async function loadBattlePage() {
+  const { data: { user } } = await supabase.auth.getUser();
 
-            // Auto-select division based on tier
-            let selectedDivision = 'free';
-            if (user.tiers.includes('circle') || user.tiers.includes('9999')) {
-                selectedDivision = 'circle';
-            } else if (user.tiers.includes('999')) {
-                selectedDivision = 'elite';
-            } else if (user.tiers.includes('199')) {
-                selectedDivision = 'access';
-            }
+  if (!user) {
+    showNotEligible("Login required to register for battles");
+    return;
+  }
 
-            document.getElementById(`div-${selectedDivision}`).checked = true;
-            document.getElementById(`div-${selectedDivision}`).closest('.division-option').classList.add('selected');
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("tier")
+    .eq("id", user.id)
+    .single();
 
-            // Pre-fill name if available
-            if (user.name) {
-                document.getElementById('battle-name').value = user.name;
-            }
+  if (error || !profile) {
+    console.error("Battle page error:", error);
+    showNotEligible("Unable to verify tier");
+    return;
+  }
 
-            // Division selector styling
-            document.querySelectorAll('.division-option input[type="radio"]').forEach(radio => {
-                radio.addEventListener('change', (e) => {
-                    document.querySelectorAll('.division-option').forEach(opt => {
-                        opt.classList.remove('selected');
-                    });
-                    e.target.closest('.division-option').classList.add('selected');
-                });
-            });
+  // ✅ FIX: Standardize to array and check for eligible tiers
+  const userTiers = Array.isArray(profile.tier) ? profile.tier : [profile.tier];
+  const eligibleTiers = ["199", "999", "9999"];
+  
+  // Check if ANY of the user's tiers are in the eligible list
+  const isEligible = userTiers.some(t => eligibleTiers.includes(t));
 
-            // Form submission
-            document.getElementById('battle-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                const name = document.getElementById('battle-name').value.trim();
-                const division = document.querySelector('input[name="division"]:checked').value;
+  if (!isEligible) {
+    showNotEligible("You need Access Pass ($199) or higher to participate.");
+    return;
+  }
 
-                if (!name) {
-                    showAlert('Please enter your name', 'warning');
-                    return;
-                }
+  // ✅ Eligible — show form
+  document.getElementById("eligibility-check").classList.add("hidden");
+  document.getElementById("battle-form").classList.remove("hidden");
 
-                const result = await registerBattle(name, division);
-                if (result && result.success) {
-                    document.getElementById('battle-form').classList.add('hidden');
-                    document.getElementById('success-message').classList.remove('hidden');
-                  document.getElementById('success-details').textContent =
-  `Registered successfully in ${result.division} division.`;
- } else {
-                    showAlert('Registration failed. Please try again.', 'warning');
-                }
-            });
-        }
+  // ✅ Auto-select highest division available
+  let division = "free";
+  if (userTiers.includes("9999")) division = "circle";
+  else if (userTiers.includes("999")) division = "elite";
+  else if (userTiers.includes("199")) division = "access";
 
-        document.addEventListener('DOMContentLoaded', loadBattlePage);
-    </script>
+  const radio = document.getElementById(`div-${division}`);
+  if (radio) {
+    radio.checked = true;
+    radio.closest(".division-option").classList.add("selected");
+  }
+
+  // Radio styling logic
+  document.querySelectorAll('.division-option input[type="radio"]').forEach(radio => {
+    radio.addEventListener("change", e => {
+      document.querySelectorAll(".division-option").forEach(opt =>
+        opt.classList.remove("selected")
+      );
+      e.target.closest(".division-option").classList.add("selected");
+    });
+  });
+
+  // ✅ Submit Logic
+  document.getElementById("battle-form").addEventListener("submit", async e => {
+    e.preventDefault();
+
+    const name = document.getElementById("battle-name").value.trim();
+    if (!name) {
+      alert("Please enter your name");
+      return;
+    }
+
+    const sessionData = await supabase.auth.getSession();
+    const accessToken = sessionData.data.session.access_token;
+
+    const res = await fetch("/api/battle/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({ name })
+    });
+
+    const result = await res.json();
+
+    if (result.success) {
+      document.getElementById("battle-form").classList.add("hidden");
+      document.getElementById("success-message").classList.remove("hidden");
+      document.getElementById("success-details").textContent =
+        `Registered successfully in ${result.division} division. Total battles joined: ${result.battleCount}`;
+    } else {
+      alert("Registration failed");
+    }
+  });
+}
+
+function showNotEligible(message) {
+  document.getElementById("eligibility-check").classList.remove("hidden");
+  document.getElementById("battle-form").classList.add("hidden");
+  const alertText = document.querySelector("#eligibility-check strong");
+  if (alertText && alertText.nextSibling) {
+    alertText.nextSibling.textContent = " " + message;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", loadBattlePage);
+</script>
+
  <div id="footer-placeholder"></div>
 
+
 <script src="/js/layout.js"></script>
-   <script src="/js/main.js"></script>
+<script src="/js/header-auth.js"></script>
+<script src="/js/main.js"></script>
+
 </body>
 </html>

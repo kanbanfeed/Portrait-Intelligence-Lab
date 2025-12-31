@@ -1,8 +1,7 @@
 require("dotenv").config();
+const { sendWelcomeEmail } = require("./utils/brevoMailer");
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-const { sendWelcomeEmail } = require("./utils/brevoMailer");
-
 const express = require("express");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
@@ -13,6 +12,10 @@ const jwt = require("jsonwebtoken");
 
 
 const app = express();
+
+
+
+
 const PORT = process.env.PORT || 5000;
 
 
@@ -28,7 +31,102 @@ const TIER_CONFIG = {
   "9999": { name: "The Circle", amount: 999900 }
 };
 
+
+
+
+// 🔥 STRIPE WEBHOOK — MUST BE FIRST
+
+
 /* ================== MIDDLEWARE ================== */
+app.post(
+  "/api/stripe/webhook",
+  bodyParser.raw({ type: "application/json" }),
+  async (req, res) => {
+    const sig = req.headers["stripe-signature"];
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+    } catch (err) {
+      console.error("❌ Webhook signature error:", err.message);
+      return res.status(400).send("Webhook Error");
+    }
+
+    console.log("🔥 WEBHOOK RECEIVED:", event.type);
+
+if (event.type === "checkout.session.completed") {
+  const session = event.data.object;
+  const tier = session.metadata?.tier;
+  const userId = session.metadata?.user_id;
+  const userEmail = session.customer_details?.email;
+
+  if (!tier || !userId || !userEmail) {
+    console.error("❌ Missing required metadata or email for webhook processing");
+    return res.json({ received: true });
+  }
+
+  // 1. Fetch current profile from Supabase
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("tier, micro_actions, pod_id, name")
+    .eq("id", userId)
+    .single();
+
+  // 2. Manage the tier array
+  let currentTiers = Array.isArray(profile?.tier) ? profile.tier : ["free"];
+  
+  // Only proceed if this is a new tier purchase for this user
+  if (!currentTiers.includes(tier)) {
+    currentTiers.push(tier);
+
+    // 3. Update the database with the new array
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({ tier: currentTiers }) 
+      .eq("id", userId);
+
+    if (error) {
+      console.error("❌ Supabase update failed:", error);
+    } else {
+      console.log(`✅ Tier array updated for ${userId}`);
+
+      // 4. Generate Magic Link for the email
+      const magicToken = jwt.sign(
+        {
+          tiers: currentTiers,
+          microActions: profile?.micro_actions || Array(7).fill(false),
+          pod: profile?.pod_id || null,
+          name: profile?.name || "",
+          circleInvite: currentTiers.includes("9999")
+        },
+        process.env.MAGIC_LINK_SECRET,
+        { expiresIn: '30d' }
+      );
+
+      const accessLink = `${req.protocol}://${req.get("host")}/magic-access?token=${magicToken}`;
+
+      // 5. Send the Welcome Email
+      try {
+        await sendWelcomeEmail({
+          toEmail: userEmail,
+          tierName: TIER_CONFIG[tier].name,
+          accessLink: accessLink
+        });
+        console.log(`📧 Welcome email sent to ${userEmail}`);
+      } catch (mailErr) {
+        console.error("❌ Failed to send welcome email:", mailErr);
+      }
+    }
+  }
+}
+
+    res.json({ received: true });
+  }
+);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -123,98 +221,7 @@ Object.keys(TIER_CONFIG).forEach(tier => {
 });
 
 /* ================== PAYMENT PAGES ================== */
-app.get("/payment/confirm", async (req, res) => {
-  const { session_id, tier } = req.query;
-  const user = getUserData(req);
 
-  if (!session_id || !TIER_CONFIG[tier]) {
-    return res.redirect("/");
-  }
-
-  try {
-    const checkoutSession =
-      await stripe.checkout.sessions.retrieve(session_id);
-
-    if (checkoutSession.payment_status === "paid") {
-      // Unlock tier
-     // Unlock tier safely
-if (!user.tiers.includes(tier)) {
-  user.tiers.push(tier);
-}
-
-if (tier === "9999" && !user.tiers.includes("circle")) {
-  user.circleInvite = true;
-  user.tiers.push("circle");
-}
-
-// 🔐 CRITICAL: issue UPDATED JWT immediately
-const updatedUser = {
-  ...user,
-  tiers: [...new Set(user.tiers)],
-  circleInvite: user.circleInvite || false,
-  microActions: user.microActions || Array(7).fill(false),
-  battles: user.battles || [],
-  pod: user.pod || null,
-  name: user.name || ""
-};
-
-const newToken = jwt.sign(
-  updatedUser,
-  process.env.MAGIC_LINK_SECRET
-);
-
-res.cookie("auth_token", newToken, {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax"
-});
-
-
-      const customerEmail = checkoutSession.customer_details?.email;
-
-      if (customerEmail) {
-        // 🔐 PERMANENT JWT MAGIC TOKEN
-       const emailToken = jwt.sign(
-  {
-    tiers: updatedUser.tiers,
-    microActions: updatedUser.microActions,
-    battles: updatedUser.battles,
-    pod: updatedUser.pod,
-    name: updatedUser.name,
-    circleInvite: updatedUser.circleInvite
-  },
-  process.env.MAGIC_LINK_SECRET
-);
-
-const accessLink = `${req.protocol}://${req.get(
-  "host"
-)}/magic-access?token=${emailToken}`;
-
-
-        
-
-        // 📧 SEND WELCOME EMAIL
-        try {
-          await sendWelcomeEmail({
-            toEmail: customerEmail,
-            tierName: TIER_CONFIG[tier].name,
-            accessLink
-          });
-        } catch (emailErr) {
-          console.error("Brevo email failed:", emailErr.message);
-        }
-      }
-
-      return res.sendFile(
-        path.join(__dirname, "public", "payment-confirm.html")
-      );
-    }
-  } catch (err) {
-    console.error("Stripe verify error:", err);
-  }
-
-  res.redirect("/");
-});
 
 
 
@@ -300,86 +307,77 @@ const mergedUser = {
 
 /* ================== STRIPE CHECKOUT ================== */
 
+const supabaseAdmin = require("./supabaseAdmin");
+
+/* ================== STRIPE CHECKOUT ================== */
 app.post("/api/stripe/create-checkout", async (req, res) => {
-  const { tier } = req.body;
+  const { tier, supabaseUserId } = req.body;
 
-  if (!TIER_CONFIG[tier]) {
-    return res.status(400).json({ error: "Invalid tier" });
+  if (!TIER_CONFIG[tier] || !supabaseUserId) {
+    return res.status(400).json({ error: "Invalid request" });
   }
 
-let user = null;
+  // 🔍 PREVENT DUPLICATE: Check if user already owns this specific tier in their array
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("tier")
+    .eq("id", supabaseUserId)
+    .single();
 
-if (req.cookies?.auth_token) {
+  const userTiers = Array.isArray(profile?.tier) ? profile.tier : [profile?.tier || "free"];
+
+  if (userTiers.includes(tier)) {
+    return res.status(400).json({ error: "You have already joined this tier" });
+  }
+
   try {
-    user = jwt.verify(req.cookies.auth_token, process.env.MAGIC_LINK_SECRET);
-  } catch {}
-}
-
-if (!user) {
-  user = getUserData(req);
-}
-
-  if (user?.tiers?.includes(tier)) {
-    return res.status(400).json({
-      error: "Tier already purchased"
-    });
-  }
-
-
-
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    payment_method_types: ["card"],
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: `Portrait Intelligence Lab – ${TIER_CONFIG[tier].name}`
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: `Portrait Intelligence Lab – ${TIER_CONFIG[tier].name}`
+            },
+            unit_amount: TIER_CONFIG[tier].amount
           },
-          unit_amount: TIER_CONFIG[tier].amount
-        },
-        quantity: 1
+          quantity: 1
+        }
+      ],
+      success_url: `${req.protocol}://${req.get("host")}/payment-confirm.html?tier=${tier}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.protocol}://${req.get("host")}/tier/${tier}`,
+      metadata: {
+        tier,
+        user_id: supabaseUserId
       }
-    ],
-    success_url: `${req.protocol}://${req.get(
-      "host"
-    )}/payment/confirm?tier=${tier}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${req.protocol}://${req.get("host")}/`
-    
-  });
-  
+    });
 
-  res.json({ url: session.url });
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error("Stripe Session Error:", err);
+    res.status(500).json({ error: "Failed to create checkout session" });
+  }
 });
 
+/* ================== USER API ================== */
 app.get("/api/user", (req, res) => {
   let user = null;
 
-  // Prefer JWT if present
   if (req.cookies?.auth_token) {
     try {
       user = jwt.verify(req.cookies.auth_token, process.env.MAGIC_LINK_SECRET);
     } catch {}
   }
 
-  // Fallback to session user
-  if (!user && req.session?.userId && userData[req.session.userId]) {
-    user = userData[req.session.userId];
-  }
-
   if (!user) {
-    return res.json({
-      tiers: ["free"],
-      microActions: Array(7).fill(false),
-      battles: [],
-      pod: null,
-      name: ""
-    });
+    return res.json({ tiers: ["free"], microActions: Array(7).fill(false), battles: [], pod: null, name: "" });
   }
 
+  // Ensure tiers is always an array for the frontend checks
   return res.json({
-    tiers: user.tiers || [],
+    tiers: Array.isArray(user.tiers) ? user.tiers : [user.tiers || "free"],
     microActions: user.microActions || Array(7).fill(false),
     battles: user.battles || [],
     pod: user.pod || null,
@@ -460,75 +458,135 @@ app.post("/api/micro-action", (req, res) => {
 });
 
 
-app.post("/api/circle/pod", (req, res) => {
-  const user = requireUser(req);
-  if (!user) {
-    return res.status(401).json({ success: false });
+app.post("/api/circle/pod", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ success: false });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+    if (authError || !authUser?.user) return res.status(401).json({ success: false });
+
+    const userId = authUser.user.id;
+
+    const { data: profile, error } = await supabaseAdmin
+      .from("profiles")
+      .select("tier, pod_id")
+      .eq("id", userId)
+      .single();
+
+    if (error || !profile) return res.status(500).json({ success: false });
+
+    // ✅ FIX: Handle both string and array formats for Circle verification
+    const userTiers = Array.isArray(profile.tier) ? profile.tier : [profile.tier];
+    if (!userTiers.includes("9999")) {
+      return res.status(403).json({ success: false, message: "Not a Circle member" });
+    }
+
+    if (profile.pod_id) return res.json({ success: true, pod: profile.pod_id });
+
+    const podId = `POD-${Math.floor(1000 + Math.random() * 9000)}`;
+    await supabaseAdmin.from("profiles").update({ pod_id: podId }).eq("id", userId);
+
+    res.json({ success: true, pod: podId });
+  } catch (err) {
+    console.error("Join pod error:", err);
+    res.status(500).json({ success: false });
   }
-
-  if (!user.tiers.includes("9999") && !user.tiers.includes("circle")) {
-    return res.status(403).json({ success: false });
-  }
-
-  const pod = user.pod || `POD-${Math.floor(1000 + Math.random() * 9000)}`;
-
-  const updatedUser = {
-    ...user,
-    pod
-  };
-
-  const newToken = jwt.sign(
-    updatedUser,
-    process.env.MAGIC_LINK_SECRET
-  );
-
-  res.cookie("auth_token", newToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax"
-  });
-
-  res.json({ success: true, pod });
 });
 
 
+app.post("/api/battle/register", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ success: false });
+
+    const token = authHeader.replace("Bearer ", "");
+    // Use supabaseAdmin to verify the user token
+    const { data: authUser } = await supabaseAdmin.auth.getUser(token);
+    if (!authUser?.user) return res.status(401).json({ success: false });
+
+    const userId = authUser.user.id;
+    const { name } = req.body;
+
+    // Fetch the user's profile
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("tier, battle_count")
+      .eq("id", userId)
+      .single();
+
+    if (!profile) return res.status(404).json({ success: false, message: "Profile not found" });
+
+    // ✅ CHECK ELIGIBILITY: Handle array format
+    const userTiers = Array.isArray(profile.tier) ? profile.tier : [profile.tier];
+    const eligibleTiers = ["199", "999", "9999"];
+    
+    if (!userTiers.some(t => eligibleTiers.includes(t))) {
+      return res.status(403).json({ success: false, message: "Ineligible tier" });
+    }
+
+    // Determine Division based on the highest tier owned
+    let division = "access";
+    if (userTiers.includes("9999")) division = "circle";
+    else if (userTiers.includes("999")) division = "elite";
+
+    const newCount = (profile.battle_count || 0) + 1;
+
+    // Update the database
+    const { error: updateError } = await supabaseAdmin
+      .from("profiles")
+      .update({ 
+        battle_count: newCount,
+        battle_registered: true 
+      })
+      .eq("id", userId);
+
+    if (updateError) throw updateError;
+
+    res.json({ success: true, division, battleCount: newCount });
+  } catch (err) {
+    console.error("Battle registration error:", err);
+    res.status(500).json({ success: false });
+  }
+});
 
 
+app.post("/api/refresh-session", async (req, res) => {
+  const { userId } = req.body;
 
-app.post("/api/battle/register", (req, res) => {
-  const user = requireUser(req);
-  if (!user) {
-    return res.status(401).json({ success: false });
+  // 1. Fetch the latest data from Supabase
+  const { data: profile, error } = await supabaseAdmin
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .single();
+
+  if (error || !profile) {
+    return res.status(400).json({ error: "User not found" });
   }
 
-  const { name } = req.body;
-  if (!name) {
-    return res.status(400).json({ success: false });
-  }
-
-  let division = "Free";
-  if (user.tiers.includes("9999") || user.tiers.includes("circle")) division = "Circle";
-  else if (user.tiers.includes("999")) division = "Elite";
-  else if (user.tiers.includes("199")) division = "Access";
-
-  const updatedUser = {
-    ...user,
-    name,
-    battles: [...(user.battles || []), { division, date: Date.now() }]
+  // 2. Create the new payload (Make sure this matches your app's user object structure)
+  const jwtUser = {
+    tiers: [profile.tier], // Dashboard checks this array
+    microActions: profile.micro_actions || [],
+    pod: profile.pod_id || null,
+    circleInvite: profile.tier === "9999",
+    name: profile.name || ""
   };
 
-  const newToken = jwt.sign(
-    updatedUser,
-    process.env.MAGIC_LINK_SECRET
-  );
+  // 3. Sign and overwrite the cookie
+  const token = jwt.sign(jwtUser, process.env.MAGIC_LINK_SECRET);
 
-  res.cookie("auth_token", newToken, {
+  res.cookie("auth_token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax"
+    sameSite: "lax",
+    path: "/" // Ensure it's available site-wide
   });
 
-  res.json({ success: true, division });
+  res.json({ success: true });
 });
 
 

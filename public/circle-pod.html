@@ -56,48 +56,91 @@
     </div>
 
     <script src="/js/app.js"></script>
-    <script>
-        async function loadPodPage() {
-            const user = await fetchUserData();
-            if (!user) {
-                showAlert('Error loading page', 'warning');
-                return;
-            }
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/supabase.js"></script>
+<script src="/js/main.js"></script>
 
-            // Check if user is Circle member
-            const isCircleMember = user.circleInvite || user.tiers.includes('circle') || user.tiers.includes('9999');
-            
-            if (!isCircleMember) {
-                document.getElementById('not-member').classList.remove('hidden');
-                document.getElementById('assignment-form').classList.add('hidden');
-                return;
-            }
 
-            // Check if already assigned
-            if (user.pod) {
-                document.getElementById('already-assigned').classList.remove('hidden');
-                document.getElementById('existing-pod-name').textContent = user.pod;
-                document.getElementById('assignment-form').classList.add('hidden');
-                return;
-            }
+<script>
+async function loadCirclePod() {
+  const { data: { user } } = await supabase.auth.getUser();
 
-            // Assignment button
-            document.getElementById('assign-pod-btn').addEventListener('click', async () => {
-                const result = await assignPod();
-                if (result && result.success) {
-                    document.getElementById('assignment-form').classList.add('hidden');
-                    document.getElementById('assigned-pod').classList.remove('hidden');
-                    document.getElementById('pod-name').textContent = result.pod;
-                } else {
-                    showAlert('Failed to assign pod. Please try again.', 'warning');
-                }
-            });
-        }
+  if (!user) {
+    showNotMember("Login required to join a pod");
+    return;
+  }
 
-        document.addEventListener('DOMContentLoaded', loadPodPage);
-    </script>
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("tier, pod_id")
+    .eq("id", user.id)
+    .single();
+
+  if (error || !profile) {
+    showNotMember("Unable to verify Circle membership");
+    return;
+  }
+
+  // ✅ FIX: Standardize to array and check for Circle ID
+  const userTiers = Array.isArray(profile.tier) ? profile.tier : [profile.tier];
+  const isCircleMember = userTiers.includes("9999");
+
+  if (!isCircleMember) {
+    showNotMember("You must be a Circle member to join a pod");
+    return;
+  }
+
+  // ✅ Circle member verified
+  document.getElementById("not-member").classList.add("hidden");
+  document.getElementById("assignment-form").classList.remove("hidden");
+
+  // Already has pod
+  if (profile.pod_id) {
+    document.getElementById("assignment-form").classList.add("hidden");
+    document.getElementById("already-assigned").classList.remove("hidden");
+    document.getElementById("existing-pod-name").textContent = profile.pod_id;
+    return;
+  }
+
+  // Join pod
+  document.getElementById("assign-pod-btn").addEventListener("click", async () => {
+    const session = await supabase.auth.getSession();
+    const accessToken = session.data.session.access_token;
+
+    const res = await fetch("/api/circle/pod", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`
+      }
+    });
+
+    const result = await res.json();
+
+    if (result.success) {
+      document.getElementById("assignment-form").classList.add("hidden");
+      document.getElementById("assigned-pod").classList.remove("hidden");
+      document.getElementById("pod-name").textContent = result.pod;
+    } else {
+      alert("Failed to join pod");
+    }
+  });
+}
+
+function showNotMember(message) {
+  document.getElementById("assignment-form").classList.add("hidden");
+  document.getElementById("not-member").classList.remove("hidden");
+  // Update the text in the error box
+  const alertText = document.querySelector("#not-member p");
+  if (alertText) alertText.textContent = message;
+}
+
+document.addEventListener("DOMContentLoaded", loadCirclePod);
+</script>
+
+
      <div id="footer-placeholder"></div>
 
 <script src="/js/layout.js"></script>
+<script src="/js/header-auth.js"></script>
 </body>
 </html>
