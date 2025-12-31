@@ -40,7 +40,7 @@ requireLoginForTier();
   btn.textContent = "Unlock This Tier";
 
   btn.onclick = async () => {
-    const res = await fetch("/api/stripe/create-checkout", {
+    const res = await fetch("https://portrait-intelligence-lab-backend.onrender.com/api/stripe/create-checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tier })
