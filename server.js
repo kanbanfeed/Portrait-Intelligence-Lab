@@ -597,6 +597,10 @@ app.post("/api/refresh-session", async (req, res) => {
 
 /* ================== SERVER ================== */
 
-app.listen(PORT, () => {
-  console.log(`🚀 Portrait Intelligence Lab running at http://localhost:${PORT}`);
-});   
+// Replace app.listen(...) with this for Vercel compatibility
+if (process.env.NODE_ENV !== 'production') {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+module.exports = app;
