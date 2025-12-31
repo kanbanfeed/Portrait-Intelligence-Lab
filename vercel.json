@@ -1,7 +1,10 @@
 {
-  "version": 2,
-  "cleanUrls": true,
-  "routes": [
-    { "src": "/(.*)", "dest": "/public/$1", "continue": true }
-  ]
+  "name": "portrait-intelligence-lab-frontend",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "serve public"
+  },
+  "dependencies": {
+    "serve": "^14.2.0"
+  }
 }
