@@ -80,7 +80,7 @@ document.getElementById("stripe-btn").addEventListener("click", async () => {
   }
 
   try {
-    const res = await fetch("/api/stripe/create-checkout", {
+    const res = await fetch("https://portrait-intelligence-lab-backend.onrender.com/api/stripe/create-checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -133,7 +133,7 @@ document.getElementById("stripe-btn").addEventListener("click", async () => {
   btn.textContent = "Redirecting…";
 
   try {
-    const res = await fetch("/api/stripe/create-checkout", {
+    const res = await fetch("https://portrait-intelligence-lab-backend.onrender.com/api/stripe/create-checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tier })
