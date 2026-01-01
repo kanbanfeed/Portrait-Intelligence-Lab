@@ -81,8 +81,8 @@ app.post(
       
       // FIX: Use 'user_id' because that's what you sent in metadata
       const tier = session.metadata?.tier;
-      const userId = session.metadata?.user_id;
-      const userEmail = session.customer_details?.email;
+  const userId = session.metadata?.supabaseUserId; 
+  const userEmail = session.customer_details?.email;
 
       console.log(`Processing fulfillment for User: ${userId}, Tier: ${tier}`);
 
