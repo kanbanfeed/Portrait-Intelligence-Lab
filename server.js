@@ -23,7 +23,9 @@ const cors = require('cors');
 
 // Replace this with your actual Vercel domain
 const allowedOrigins = [
-  'https://portrait-intelligence-lab-frontend.vercel.app'
+  'https://portrait-intelligence-lab-frontend.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:5000'
 ];
 
 app.use(cors({
@@ -52,10 +54,7 @@ const TIER_CONFIG = {
 
 
 
-// 🔥 STRIPE WEBHOOK — MUST BE FIRST
 
-
-/* ================== MIDDLEWARE ================== */
 /* ================== UPDATED STRIPE WEBHOOK ================== */
 app.post(
   "/api/stripe/webhook",
@@ -99,15 +98,8 @@ app.post(
         console.error("❌ Profile fetch failed:", fetchError);
         return res.status(500).send("Database error");
       }
-      
-if (userEmail) {
-    const tierName = TIER_CONFIG[tier]?.name || "Premium Tier";
-    // Construct a magic link if you want them to auto-login from email
-    const accessLink = `https://portrait-intelligence-lab-frontend.vercel.app/dashboard`;
-    
-    await sendWelcomeEmail({ toEmail: userEmail, tierName, accessLink });
-    console.log(`📧 Welcome email sent to ${userEmail}`);
-  }
+
+
       // 2. Add new tier to the array
       let currentTiers = Array.isArray(profile?.tier) ? profile.tier : ["free"];
       if (!currentTiers.includes(tier)) {
@@ -125,6 +117,22 @@ if (userEmail) {
           console.log(`✅ Tier updated successfully for ${userId}`);
         }
       }
+      if (tierAdded) {
+    const accessToken = jwt.sign(
+      { tiers: currentTiers, userId },
+      process.env.MAGIC_LINK_SECRET,
+      { expiresIn: "30d" }
+    );
+
+    await sendWelcomeEmail({
+      toEmail: userEmail,
+      tierName: TIER_CONFIG[tier].name,
+      accessLink: `https://portrait-intelligence-lab-frontend.vercel.app/magic-access?token=${accessToken}`
+    });
+
+    console.log(`📧 Welcome email sent to ${userEmail}`);
+  }
+
     }
 
     res.json({ received: true });
