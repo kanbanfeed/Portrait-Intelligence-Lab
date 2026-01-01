@@ -58,7 +58,7 @@ const TIER_CONFIG = {
 /* ================== UPDATED STRIPE WEBHOOK ================== */
 app.post(
   "/api/stripe/webhook",
-  express.raw({ type: "application/json" }), // Use express.raw for signature verification
+  express.raw({ type: "application/json" }),
   async (req, res) => {
     const sig = req.headers["stripe-signature"];
     let event;
@@ -76,18 +76,22 @@ app.post(
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
-  const tier = session.metadata?.tier;
-  const userId = session.metadata?.supabaseUserId;
-  const userEmail = session.customer_details?.email;
+
+      const tier = session.metadata?.tier;
+      const userId = session.metadata?.supabaseUserId;
+      const userEmail =
+        session.customer_details?.email ||
+        session.customer_email ||
+        session.customer?.email;
 
       console.log(`Processing fulfillment for User: ${userId}, Tier: ${tier}`);
 
-      if (!tier || !userId) {
-        console.error("❌ Missing metadata");
+      if (!tier || !userId || !userEmail) {
+        console.error("❌ Missing metadata or email");
         return res.status(400).send("Missing metadata");
       }
 
-      // 1. Fetch current profile from Supabase
+      // 1️⃣ Fetch profile
       const { data: profile, error: fetchError } = await supabaseAdmin
         .from("profiles")
         .select("tier")
@@ -99,13 +103,14 @@ app.post(
         return res.status(500).send("Database error");
       }
 
-
-      // 2. Add new tier to the array
+      // 2️⃣ Update tiers
       let currentTiers = Array.isArray(profile?.tier) ? profile.tier : ["free"];
+      let tierAdded = false;
+
       if (!currentTiers.includes(tier)) {
         currentTiers.push(tier);
+        tierAdded = true;
 
-        // 3. Update Supabase
         const { error: updateError } = await supabaseAdmin
           .from("profiles")
           .update({ tier: currentTiers })
@@ -113,26 +118,33 @@ app.post(
 
         if (updateError) {
           console.error("❌ Supabase update failed:", updateError);
-        } else {
-          console.log(`✅ Tier updated successfully for ${userId}`);
+          return res.status(500).send("Tier update failed");
+        }
+
+        console.log(`✅ Tier updated successfully for ${userId}`);
+      }
+
+      // 3️⃣ Send welcome email ONLY if tier was newly added
+      if (tierAdded) {
+        try {
+          const accessToken = jwt.sign(
+            { tiers: currentTiers, userId },
+            process.env.MAGIC_LINK_SECRET,
+            { expiresIn: "30d" }
+          );
+
+          await sendWelcomeEmail({
+            toEmail: userEmail,
+            tierName: TIER_CONFIG[tier].name,
+            accessLink:
+              `https://portrait-intelligence-lab-frontend.vercel.app/magic-access?token=${accessToken}`
+          });
+
+          console.log(`📧 Welcome email sent to ${userEmail}`);
+        } catch (emailErr) {
+          console.error("❌ Welcome email failed:", emailErr);
         }
       }
-      if (tierAdded) {
-    const accessToken = jwt.sign(
-      { tiers: currentTiers, userId },
-      process.env.MAGIC_LINK_SECRET,
-      { expiresIn: "30d" }
-    );
-
-    await sendWelcomeEmail({
-      toEmail: userEmail,
-      tierName: TIER_CONFIG[tier].name,
-      accessLink: `https://portrait-intelligence-lab-frontend.vercel.app/magic-access?token=${accessToken}`
-    });
-
-    console.log(`📧 Welcome email sent to ${userEmail}`);
-  }
-
     }
 
     res.json({ received: true });
