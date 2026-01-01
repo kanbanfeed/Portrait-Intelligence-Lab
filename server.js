@@ -136,8 +136,8 @@ app.post(
           await sendWelcomeEmail({
             toEmail: userEmail,
             tierName: TIER_CONFIG[tier].name,
-            accessLink:
-              `https://portrait-intelligence-lab-frontend.vercel.app/magic-access?token=${accessToken}`
+           accessLink: `https://portrait-intelligence-lab-backend.onrender.com/magic-access?token=${accessToken}`
+
           });
 
           console.log(`📧 Welcome email sent to ${userEmail}`);
