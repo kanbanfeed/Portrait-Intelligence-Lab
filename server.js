@@ -23,8 +23,7 @@ const cors = require('cors');
 
 // Replace this with your actual Vercel domain
 const allowedOrigins = [
-  'https://portrait-intelligence-lab-frontend.vercel.app',
-  'https://portrait-intelligence-lab.vercel.app'
+  'https://portrait-intelligence-lab-frontend.vercel.app'
 ];
 
 app.use(cors({
@@ -78,10 +77,8 @@ app.post(
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
-      
-      // FIX: Use 'user_id' because that's what you sent in metadata
-      const tier = session.metadata?.tier;
-  const userId = session.metadata?.supabaseUserId; 
+  const tier = session.metadata?.tier;
+  const userId = session.metadata?.supabaseUserId;
   const userEmail = session.customer_details?.email;
 
       console.log(`Processing fulfillment for User: ${userId}, Tier: ${tier}`);
@@ -102,7 +99,15 @@ app.post(
         console.error("❌ Profile fetch failed:", fetchError);
         return res.status(500).send("Database error");
       }
-
+      
+if (userEmail) {
+    const tierName = TIER_CONFIG[tier]?.name || "Premium Tier";
+    // Construct a magic link if you want them to auto-login from email
+    const accessLink = `https://portrait-intelligence-lab-frontend.vercel.app/dashboard`;
+    
+    await sendWelcomeEmail({ toEmail: userEmail, tierName, accessLink });
+    console.log(`📧 Welcome email sent to ${userEmail}`);
+  }
       // 2. Add new tier to the array
       let currentTiers = Array.isArray(profile?.tier) ? profile.tier : ["free"];
       if (!currentTiers.includes(tier)) {
