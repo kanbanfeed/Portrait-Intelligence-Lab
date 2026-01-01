@@ -319,7 +319,10 @@ const mergedUser = {
       sameSite: "lax"
     });
 
-    return res.redirect("/dashboard");
+    return res.redirect(
+  "https://portrait-intelligence-lab-frontend.vercel.app/dashboard"
+);
+
   } catch (err) {
     return res.status(403).send("Invalid or expired access link");
   }
@@ -426,11 +429,14 @@ function getOrCreateUser(req, res) {
     process.env.MAGIC_LINK_SECRET
   );
 
-  res.cookie("auth_token", newToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax"
-  });
+ res.cookie("auth_token", newToken, {
+  httpOnly: true,
+  secure: true,
+  sameSite: "none",
+  domain: ".vercel.app",
+  path: "/"
+});
+
 
   return guestUser;
 }
