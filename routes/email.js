@@ -1,39 +1,35 @@
-const express = require("express");
+import express from "express";
+import { sendWelcomeEmail } from "../utils/emailService.js";
+import supabaseAdmin from "../supabaseAdmin.js";
+
 const router = express.Router();
 
-const sendWelcomeEmail = require("../utils/emailService");
-const supabaseAdmin = require("../supabaseAdmin");
-
-router.post("/send-welcome", async (req, res) => {
-  const { email } = req.body;
+router.post("/send-welcome-on-login", async (req, res) => {
+  const { userId, email } = req.body;
 
   try {
-    // Get user by email
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers();
-    if (error) throw error;
-
-    const user = data.users.find(u => u.email === email);
-    if (!user) return res.json({ success: false });
-
-    // Check profile flag
-    const { data: profile } = await supabaseAdmin
+    // 1️⃣ Check profile
+    const { data: profile, error } = await supabaseAdmin
       .from("profiles")
       .select("welcome_sent")
-      .eq("id", user.id)
+      .eq("id", userId)
       .single();
 
+    if (error) throw error;
+
+    // 2️⃣ If already sent → skip
     if (profile?.welcome_sent) {
       return res.json({ success: true, skipped: true });
     }
 
-    // Send email
+    // 3️⃣ Send welcome email
     await sendWelcomeEmail(email);
 
-    // Mark as sent
+    // 4️⃣ Mark as sent
     await supabaseAdmin
       .from("profiles")
       .update({ welcome_sent: true })
-      .eq("id", user.id);
+      .eq("id", userId);
 
     res.json({ success: true });
   } catch (err) {
@@ -42,4 +38,4 @@ router.post("/send-welcome", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
