@@ -43,9 +43,9 @@ app.use(cors({
 }));
 
 
-import emailRoutes from "./routes/email.js";
-
+const emailRoutes = require("./routes/email");
 app.use("/api", emailRoutes);
+
 /* ================== CONFIG ================== */
 
 const TIER_CONFIG = {
