@@ -13,7 +13,7 @@ const jwt = require("jsonwebtoken");
 
 const app = express();
 
-
+const emailRoutes = require("./routes/email");
 
 
 const PORT = process.env.PORT || 5000;
@@ -43,7 +43,7 @@ app.use(cors({
 }));
 
 
-const emailRoutes = require("./routes/email");
+
 app.use("/api", emailRoutes);
 
 /* ================== CONFIG ================== */
