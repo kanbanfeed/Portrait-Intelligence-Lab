@@ -1,4 +1,4 @@
-export function getWelcomeEmailHTML() {
+ function getWelcomeEmailHTML() {
   return `
 <!DOCTYPE html>
 <html>

@@ -525,57 +525,104 @@ app.post("/api/circle/pod", async (req, res) => {
 app.post("/api/battle/register", async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false });
+    if (!authHeader) {
+      return res.status(401).json({ success: false });
+    }
 
     const token = authHeader.replace("Bearer ", "");
-    // Use supabaseAdmin to verify the user token
-    const { data: authUser } = await supabaseAdmin.auth.getUser(token);
-    if (!authUser?.user) return res.status(401).json({ success: false });
+    const { data: authUser, error: authError } =
+      await supabaseAdmin.auth.getUser(token);
+
+    if (authError || !authUser?.user) {
+      return res.status(401).json({ success: false });
+    }
 
     const userId = authUser.user.id;
-    const { name } = req.body;
 
-    // Fetch the user's profile
-    const { data: profile } = await supabaseAdmin
+    // 1️⃣ Fetch profile including registrations
+    const { data: profile, error } = await supabaseAdmin
       .from("profiles")
-      .select("tier, battle_count")
+      .select("tier, battle_registrations")
       .eq("id", userId)
       .single();
 
-    if (!profile) return res.status(404).json({ success: false, message: "Profile not found" });
-
-    // ✅ CHECK ELIGIBILITY: Handle array format
-    const userTiers = Array.isArray(profile.tier) ? profile.tier : [profile.tier];
-    const eligibleTiers = ["199", "999", "9999"];
-    
-    if (!userTiers.some(t => eligibleTiers.includes(t))) {
-      return res.status(403).json({ success: false, message: "Ineligible tier" });
+    if (error || !profile) {
+      return res.status(404).json({
+        success: false,
+        message: "Profile not found"
+      });
     }
 
-    // Determine Division based on the highest tier owned
-    let division = "access";
-    if (userTiers.includes("9999")) division = "circle";
-    else if (userTiers.includes("999")) division = "elite";
+    // 2️⃣ Normalize tiers
+    const userTiers = Array.isArray(profile.tier)
+      ? profile.tier
+      : [profile.tier];
 
-    const newCount = (profile.battle_count || 0) + 1;
+    const eligibleTiers = ["199", "999", "9999"];
 
-    // Update the database
+    const eligibleTier = [...eligibleTiers]
+      .reverse()
+      .find(t => userTiers.includes(t));
+
+    if (!eligibleTier) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not eligible for this battle"
+      });
+    }
+
+    // 3️⃣ Check duplicate registration (same battle + same tier)
+    const registrations = profile.battle_registrations || [];
+
+    const alreadyRegistered = registrations.some(
+      r => r.battle === "current" && r.tier === eligibleTier
+    );
+
+    if (alreadyRegistered) {
+      return res.status(409).json({
+        success: false,
+        message: "You have already registered for this battle with this tier."
+      });
+    }
+
+    // 4️⃣ Register user
+    const updatedRegistrations = [
+      ...registrations,
+      {
+        battle: "current",
+        tier: eligibleTier,
+        registeredAt: new Date().toISOString()
+      }
+    ];
+
     const { error: updateError } = await supabaseAdmin
       .from("profiles")
-      .update({ 
-        battle_count: newCount,
-        battle_registered: true 
+      .update({
+        battle_registrations: updatedRegistrations
       })
       .eq("id", userId);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      throw updateError;
+    }
 
-    res.json({ success: true, division, battleCount: newCount });
+    // 5️⃣ Division mapping
+    let division = "access";
+    if (eligibleTier === "9999") division = "circle";
+    else if (eligibleTier === "999") division = "elite";
+
+    return res.json({
+      success: true,
+      division,
+      tierUsed: eligibleTier
+    });
+
   } catch (err) {
     console.error("Battle registration error:", err);
     res.status(500).json({ success: false });
   }
 });
+
 
 
 app.post("/api/refresh-session", async (req, res) => {
