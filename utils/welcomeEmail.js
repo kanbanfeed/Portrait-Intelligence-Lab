@@ -78,3 +78,4 @@ export function getWelcomeEmailHTML() {
 </html>
 `;
 }
+module.exports = { getWelcomeEmailHTML };

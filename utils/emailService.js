@@ -8,7 +8,7 @@ brevo.setApiKey(
 );
 
 async function sendWelcomeEmail(email) {
-  await brevo.sendTransacEmail({
+  return brevo.sendTransacEmail({
     subject: "Welcome to Portrait Intelligence Lab",
     sender: {
       email: "no-reply@crowbarltd.com",
@@ -19,4 +19,4 @@ async function sendWelcomeEmail(email) {
   });
 }
 
-module.exports = sendWelcomeEmail;
+module.exports = { sendWelcomeEmail };
