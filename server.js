@@ -662,14 +662,8 @@ app.post("/api/refresh-session", async (req, res) => {
 });
 
 
-
-
-
-
-
 /* ================== SERVER ================== */
 
-// Replace app.listen(...) with this for Vercel compatibility
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
