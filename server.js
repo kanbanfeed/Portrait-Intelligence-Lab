@@ -19,6 +19,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 
+
 const cors = require('cors');
 
 // Replace this with your actual Vercel domain
@@ -41,6 +42,10 @@ app.use(cors({
   credentials: true
 }));
 
+
+import emailRoutes from "./routes/email.js";
+
+app.use("/api", emailRoutes);
 /* ================== CONFIG ================== */
 
 const TIER_CONFIG = {
