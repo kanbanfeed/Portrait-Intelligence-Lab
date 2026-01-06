@@ -1,5 +1,5 @@
-import Brevo from "@getbrevo/brevo";
-import { getWelcomeEmailHTML } from "./welcomeEmail.js";
+const Brevo = require("@getbrevo/brevo");
+const { getWelcomeEmailHTML } = require("./welcomeEmail");
 
 const brevo = new Brevo.TransactionalEmailsApi();
 brevo.setApiKey(
@@ -7,7 +7,7 @@ brevo.setApiKey(
   process.env.BREVO_API_KEY
 );
 
-export async function sendWelcomeEmail(email) {
+async function sendWelcomeEmail(email) {
   await brevo.sendTransacEmail({
     subject: "Welcome to Portrait Intelligence Lab",
     sender: {
@@ -18,3 +18,5 @@ export async function sendWelcomeEmail(email) {
     htmlContent: getWelcomeEmailHTML()
   });
 }
+
+module.exports = sendWelcomeEmail;

@@ -1,19 +1,21 @@
-import express from "express";
-import { sendWelcomeEmail } from "../utils/emailService.js";
-import { supabaseAdmin } from "../supabaseAdmin.js";
-
+const express = require("express");
 const router = express.Router();
+
+const sendWelcomeEmail = require("../utils/emailService");
+const supabaseAdmin = require("../supabaseAdmin");
 
 router.post("/send-welcome", async (req, res) => {
   const { email } = req.body;
 
   try {
-    // Get user
-    const { data: users } = await supabaseAdmin.auth.admin.listUsers();
-    const user = users.users.find(u => u.email === email);
+    // Get user by email
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers();
+    if (error) throw error;
+
+    const user = data.users.find(u => u.email === email);
     if (!user) return res.json({ success: false });
 
-    // Check profile
+    // Check profile flag
     const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("welcome_sent")
@@ -34,11 +36,10 @@ router.post("/send-welcome", async (req, res) => {
       .eq("id", user.id);
 
     res.json({ success: true });
-
   } catch (err) {
-    console.error(err);
+    console.error("Welcome email error:", err);
     res.status(500).json({ success: false });
   }
 });
 
-export default router;
+module.exports = router;
