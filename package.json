@@ -1,6 +1,7 @@
 {
   "name": "portrait-intelligence-lab",
   "version": "1.0.0",
+   "type": "module",
   "description": "Portrait Intelligence Lab Web Application",
   "main": "server.js",
   "scripts": {
