@@ -11,7 +11,7 @@ async function sendWelcomeEmail(email) {
   return brevo.sendTransacEmail({
     subject: "Welcome to Portrait Intelligence Lab",
     sender: {
-      email: "no-reply@crowbarltd.com",
+      email: "support@crowbarltd.com",
       name: "Portrait Intelligence Lab"
     },
     to: [{ email }],
