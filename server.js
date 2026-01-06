@@ -384,29 +384,68 @@ app.post("/api/stripe/create-checkout", async (req, res) => {
 });
 
 /* ================== USER API ================== */
-app.get("/api/user", (req, res) => {
-  let user = null;
+/* ================== USER API ================== */
+app.get("/api/user", async (req, res) => {
+  let jwtUser = null;
 
+  // 1️⃣ Read JWT from cookie (session identity)
   if (req.cookies?.auth_token) {
     try {
-      user = jwt.verify(req.cookies.auth_token, process.env.MAGIC_LINK_SECRET);
+      jwtUser = jwt.verify(
+        req.cookies.auth_token,
+        process.env.MAGIC_LINK_SECRET
+      );
     } catch {}
   }
 
-  if (!user) {
-    return res.json({ tiers: ["free"], microActions: Array(7).fill(false), battles: [], pod: null, name: "" });
+  // 2️⃣ Not logged in → return defaults
+  if (!jwtUser?.userId) {
+    return res.json({
+      tiers: ["free"],
+      microActions: Array(7).fill(false),
+      battles: [],
+      battleRegistrations: [],
+      pod: null,
+      name: "",
+      circleInvite: false
+    });
   }
 
-  // Ensure tiers is always an array for the frontend checks
+  // 3️⃣ Fetch latest profile from Supabase (SOURCE OF TRUTH)
+  const { data: profile, error } = await supabaseAdmin
+    .from("profiles")
+    .select("tier, battle_registrations, micro_actions, pod_id, name")
+    .eq("id", jwtUser.userId)
+    .single();
+
+  if (error || !profile) {
+    return res.json({
+      tiers: ["free"],
+      microActions: Array(7).fill(false),
+      battles: [],
+      battleRegistrations: [],
+      pod: null,
+      name: "",
+      circleInvite: false
+    });
+  }
+
+  // 4️⃣ Normalize tiers
+  const tiers = Array.isArray(profile.tier)
+    ? profile.tier
+    : [profile.tier || "free"];
+
   return res.json({
-    tiers: Array.isArray(user.tiers) ? user.tiers : [user.tiers || "free"],
-    microActions: user.microActions || Array(7).fill(false),
-    battles: user.battles || [],
-    pod: user.pod || null,
-    name: user.name || "",
-    circleInvite: user.circleInvite || false
+    tiers,
+    microActions: profile.micro_actions || Array(7).fill(false),
+    battles: [], // (legacy – safe to keep)
+    battleRegistrations: profile.battle_registrations || [],
+    pod: profile.pod_id || null,
+    name: profile.name || "",
+    circleInvite: tiers.includes("9999")
   });
 });
+
 
 
 function getOrCreateUser(req, res) {
@@ -660,7 +699,6 @@ app.post("/api/refresh-session", async (req, res) => {
 
   res.json({ success: true });
 });
-
 
 /* ================== SERVER ================== */
 
