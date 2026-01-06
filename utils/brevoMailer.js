@@ -118,4 +118,57 @@ async function sendWelcomeEmail({ toEmail, tierName, accessLink }) {
   });
 }
 
-module.exports = { sendWelcomeEmail };
+async function sendSignupWelcomeEmail(toEmail) {
+  return apiInstance.sendTransacEmail({
+    to: [{ email: toEmail }],
+    sender: {
+      email: process.env.EMAIL_FROM_ADDRESS,
+      name: "Portrait Intelligence Lab"
+    },
+    subject: "Welcome to Portrait Intelligence Lab™",
+    htmlContent: `
+<!DOCTYPE html>
+<html>
+<body style="font-family:Arial; background:#f9fafb; padding:40px;">
+  <div style="max-width:600px; margin:auto; background:#fff; padding:30px; border-radius:10px;">
+    <h2>Welcome 👋</h2>
+    <p>
+      Thank you for registering successfully on
+      <strong>Portrait Intelligence Lab™</strong>.
+    </p>
+
+    <p>Your account has been created and you can now explore the platform.</p>
+
+    <div style="text-align:center; margin:30px 0;">
+      <a href="https://portrait-intelligence-lab-frontend.vercel.app/dashboard"
+         style="
+           background:#2563eb;
+           color:#fff;
+           padding:14px 28px;
+           text-decoration:none;
+           border-radius:8px;
+           font-weight:600;
+         ">
+        Go to Dashboard
+      </a>
+    </div>
+
+    <p style="font-size:13px; color:#6b7280;">
+      If you did not create this account, you may safely ignore this email.
+    </p>
+
+    <p style="font-size:12px; color:#9ca3af;">
+      © Portrait Intelligence Lab™
+    </p>
+  </div>
+</body>
+</html>
+`
+  });
+}
+
+module.exports = {
+  sendWelcomeEmail,
+  sendSignupWelcomeEmail
+};
+// module.exports = { sendWelcomeEmail };
