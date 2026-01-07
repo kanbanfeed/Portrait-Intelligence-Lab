@@ -21,6 +21,7 @@
   const PORT = process.env.PORT || 5000;
 
 
+  const supabaseAdmin = require("./supabaseAdmin");
 
   const cors = require('cors');
 
@@ -396,7 +397,6 @@ app.post("/api/auth/signup-complete", async (req, res) => {
 
   /* ================== STRIPE CHECKOUT ================== */
 
-  const supabaseAdmin = require("./supabaseAdmin");
 
   // server.js - Updated Checkout Route
   app.post("/api/stripe/create-checkout", async (req, res) => {
