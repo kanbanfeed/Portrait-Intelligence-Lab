@@ -24,9 +24,9 @@
   const supabaseAdmin = require("./supabaseAdmin");
 
   const cors = require('cors');
-
-  app.use(express.json());
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
    
 
   // Replace this with your actual Vercel domain
@@ -215,8 +215,7 @@ app.post("/api/auth/signup-complete", async (req, res) => {
     }
   );
 
-  app.use(bodyParser.json());
-  app.use(bodyParser.urlencoded({ extended: true }));
+
   app.use(cookieParser());
   app.use(
     session({
