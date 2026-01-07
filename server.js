@@ -145,13 +145,7 @@ app.post("/api/auth/signup-complete", async (req, res) => {
       if (event.type === "checkout.session.completed") {
         const session = event.data.object;
 
-// 🔁 Fetch PaymentIntent to get Stripe receipt URL
 
-const paymentIntent = await stripe.paymentIntents.retrieve(
-  session.payment_intent
-);
-
-const receiptUrl = paymentIntent.charges.data[0]?.receipt_url || null;
 
 
 const tier = String(session.metadata?.tier);
@@ -160,6 +154,12 @@ const tier = String(session.metadata?.tier);
           session.customer_details?.email ||
           session.customer_email ||
           session.customer?.email;
+
+          const paymentDetails = {
+  tierLabel: `${TIER_CONFIG[tier].name} ($${TIER_CONFIG[tier].amount / 100})`,
+  paymentId: session.id,
+  paymentMethod: "Stripe"
+};
 
         console.log(`Processing fulfillment for User: ${userId}, Tier: ${tier}`);
 
@@ -224,7 +224,7 @@ let currentTiers = Array.isArray(freshProfile?.tier)
               toEmail: userEmail,
               tierName: TIER_CONFIG[tier].name,
             accessLink: `https://portrait-intelligence-lab-backend.onrender.com/magic-access?token=${accessToken}`,
-             receiptUrl
+             paymentDetails
             });
 
             console.log(`📧 Welcome email sent to ${userEmail}`);
