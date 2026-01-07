@@ -7,6 +7,8 @@ const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const path = require("path");
+const { sendSignupWelcomeEmail } = require("./utils/brevoMailer");
+
 
 const jwt = require("jsonwebtoken");
 
@@ -45,6 +47,39 @@ app.use(cors({
 
 
 app.use("/api", emailRoutes);
+
+app.post("/api/auth/signup-complete", async (req, res) => {
+  const { userId, email } = req.body;
+
+  try {
+    // Ensure profile exists
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("welcome_sent")
+      .eq("id", userId)
+      .single();
+
+    if (profile?.welcome_sent) {
+      return res.json({ success: true, skipped: true });
+    }
+
+    // Send signup welcome email
+    await sendSignupWelcomeEmail(email);
+
+    // Mark as sent
+    await supabaseAdmin
+      .from("profiles")
+      .update({ welcome_sent: true })
+      .eq("id", userId);
+
+    console.log("📧 Signup welcome email sent:", email);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Signup email error:", err);
+    res.status(500).json({ success: false });
+  }
+});
 
 /* ================== CONFIG ================== */
 
