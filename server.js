@@ -1,72 +1,90 @@
-require("dotenv").config();
-const { sendWelcomeEmail } = require("./utils/brevoMailer");
-const Stripe = require("stripe");
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-const express = require("express");
-const bodyParser = require("body-parser");
-const cookieParser = require("cookie-parser");
-const session = require("express-session");
-const path = require("path");
-const { sendSignupWelcomeEmail } = require("./utils/brevoMailer");
+  require("dotenv").config();
+  const { sendWelcomeEmail } = require("./utils/brevoMailer");
+  const Stripe = require("stripe");
+  const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+  const express = require("express");
+  const bodyParser = require("body-parser");
+  const cookieParser = require("cookie-parser");
+  const session = require("express-session");
+  const path = require("path");
+  const { sendSignupWelcomeEmail } = require("./utils/brevoMailer");
 
 
-const jwt = require("jsonwebtoken");
+  const jwt = require("jsonwebtoken");
 
 
-const app = express();
+  const app = express();
 
-const emailRoutes = require("./routes/email");
-
-
-const PORT = process.env.PORT || 5000;
+  const emailRoutes = require("./routes/email");
 
 
-
-const cors = require('cors');
-
-// Replace this with your actual Vercel domain
-const allowedOrigins = [
-  'https://portrait-intelligence-lab-frontend.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:5000'
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    // allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  credentials: true
-}));
+  const PORT = process.env.PORT || 5000;
 
 
 
-app.use("/api", emailRoutes);
+  const cors = require('cors');
+
+  // Replace this with your actual Vercel domain
+  const allowedOrigins = [
+    'https://portrait-intelligence-lab-frontend.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5000'
+  ];
+
+  app.use(cors({
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) === -1) {
+        const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+        return callback(new Error(msg), false);
+      }
+      return callback(null, true);
+    },
+    credentials: true
+  }));
+
+
+
+  app.use("/api", emailRoutes);
 
 app.post("/api/auth/signup-complete", async (req, res) => {
   const { userId, email } = req.body;
 
   try {
-    // Ensure profile exists
-    const { data: profile } = await supabaseAdmin
+    // 1️⃣ Ensure profile exists (CREATE IF NOT)
+    const { data: profile, error } = await supabaseAdmin
+      .from("profiles")
+      .select("welcome_sent")
+      .eq("id", userId)
+      .maybeSingle(); // ✅ IMPORTANT
+
+    if (!profile) {
+      // Create profile row
+      await supabaseAdmin.from("profiles").insert({
+        id: userId,
+        email: email,
+        tier: ["free"],
+        welcome_sent: false
+      });
+    }
+
+    // 2️⃣ Re-fetch profile
+    const { data: freshProfile } = await supabaseAdmin
       .from("profiles")
       .select("welcome_sent")
       .eq("id", userId)
       .single();
 
-    if (profile?.welcome_sent) {
+    // 3️⃣ Prevent duplicate emails
+    if (freshProfile.welcome_sent) {
       return res.json({ success: true, skipped: true });
     }
 
-    // Send signup welcome email
+    // 4️⃣ SEND EMAIL ✅
     await sendSignupWelcomeEmail(email);
 
-    // Mark as sent
+    // 5️⃣ Mark as sent
     await supabaseAdmin
       .from("profiles")
       .update({ welcome_sent: true })
@@ -76,280 +94,472 @@ app.post("/api/auth/signup-complete", async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error("Signup email error:", err);
-    res.status(500).json({ success: false });
+    console.error("❌ Signup email error:", err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
-/* ================== CONFIG ================== */
 
-const TIER_CONFIG = {
-  "9.99": { name: "Starter Tier", amount: 999 },
-  "19.99": { name: "Professional Tier", amount: 1999 },
-  "199": { name: "Access Pass", amount: 19900 },
-  "999": { name: "Elite Challenge", amount: 99900 },
-  "9999": { name: "The Circle", amount: 999900 }
-};
+  /* ================== CONFIG ================== */
 
-
-
+  const TIER_CONFIG = {
+    "9.99": { name: "Starter Tier", amount: 999 },
+    "19.99": { name: "Professional Tier", amount: 1999 },
+    "199": { name: "Access Pass", amount: 19900 },
+    "999": { name: "Elite Challenge", amount: 99900 },
+    "9999": { name: "The Circle", amount: 999900 }
+  };
 
 
-/* ================== UPDATED STRIPE WEBHOOK ================== */
-app.post(
-  "/api/stripe/webhook",
-  express.raw({ type: "application/json" }),
-  async (req, res) => {
-    const sig = req.headers["stripe-signature"];
-    let event;
 
-    try {
-      event = stripe.webhooks.constructEvent(
-        req.body,
-        sig,
-        process.env.STRIPE_WEBHOOK_SECRET
-      );
-    } catch (err) {
-      console.error("❌ Webhook signature error:", err.message);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
 
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object;
 
-      const tier = session.metadata?.tier;
-      const userId = session.metadata?.supabaseUserId;
-      const userEmail =
-        session.customer_details?.email ||
-        session.customer_email ||
-        session.customer?.email;
+  /* ================== UPDATED STRIPE WEBHOOK ================== */
+  app.post(
+    "/api/stripe/webhook",
+    express.raw({ type: "application/json" }),
+    async (req, res) => {
+      const sig = req.headers["stripe-signature"];
+      let event;
 
-      console.log(`Processing fulfillment for User: ${userId}, Tier: ${tier}`);
-
-      if (!tier || !userId || !userEmail) {
-        console.error("❌ Missing metadata or email");
-        return res.status(400).send("Missing metadata");
+      try {
+        event = stripe.webhooks.constructEvent(
+          req.body,
+          sig,
+          process.env.STRIPE_WEBHOOK_SECRET
+        );
+      } catch (err) {
+        console.error("❌ Webhook signature error:", err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
       }
 
-      // 1️⃣ Fetch profile
-      const { data: profile, error: fetchError } = await supabaseAdmin
-        .from("profiles")
-        .select("tier")
-        .eq("id", userId)
-        .single();
+      if (event.type === "checkout.session.completed") {
+        const session = event.data.object;
 
-      if (fetchError) {
-        console.error("❌ Profile fetch failed:", fetchError);
-        return res.status(500).send("Database error");
-      }
+        const tier = session.metadata?.tier;
+        const userId = session.metadata?.supabaseUserId;
+        const userEmail =
+          session.customer_details?.email ||
+          session.customer_email ||
+          session.customer?.email;
 
-      // 2️⃣ Update tiers
-      let currentTiers = Array.isArray(profile?.tier) ? profile.tier : ["free"];
-      let tierAdded = false;
+        console.log(`Processing fulfillment for User: ${userId}, Tier: ${tier}`);
 
-      if (!currentTiers.includes(tier)) {
-        currentTiers.push(tier);
-        tierAdded = true;
+        if (!tier || !userId || !userEmail) {
+          console.error("❌ Missing metadata or email");
+          return res.status(400).send("Missing metadata");
+        }
 
-        const { error: updateError } = await supabaseAdmin
+        // 1️⃣ Fetch profile
+        const { data: profile, error: fetchError } = await supabaseAdmin
           .from("profiles")
-          .update({ tier: currentTiers })
-          .eq("id", userId);
+          .select("tier")
+          .eq("id", userId)
+          .single();
 
-        if (updateError) {
-          console.error("❌ Supabase update failed:", updateError);
-          return res.status(500).send("Tier update failed");
+        if (fetchError) {
+          console.error("❌ Profile fetch failed:", fetchError);
+          return res.status(500).send("Database error");
         }
 
-        console.log(`✅ Tier updated successfully for ${userId}`);
+        // 2️⃣ Update tiers
+        let currentTiers = Array.isArray(profile?.tier) ? profile.tier : ["free"];
+        let tierAdded = false;
+
+        if (!currentTiers.includes(tier)) {
+          currentTiers.push(tier);
+          tierAdded = true;
+
+          const { error: updateError } = await supabaseAdmin
+            .from("profiles")
+            .update({ tier: currentTiers })
+            .eq("id", userId);
+
+          if (updateError) {
+            console.error("❌ Supabase update failed:", updateError);
+            return res.status(500).send("Tier update failed");
+          }
+
+          console.log(`✅ Tier updated successfully for ${userId}`);
+        }
+
+        // 3️⃣ Send welcome email ONLY if tier was newly added
+        if (tierAdded) {
+          try {
+            const accessToken = jwt.sign(
+              { tiers: currentTiers, userId },
+              process.env.MAGIC_LINK_SECRET,
+              { expiresIn: "30d" }
+            );
+
+            await sendWelcomeEmail({
+              toEmail: userEmail,
+              tierName: TIER_CONFIG[tier].name,
+            accessLink: `https://portrait-intelligence-lab-backend.onrender.com/magic-access?token=${accessToken}`
+
+            });
+
+            console.log(`📧 Welcome email sent to ${userEmail}`);
+          } catch (emailErr) {
+            console.error("❌ Welcome email failed:", emailErr);
+          }
+        }
       }
 
-      // 3️⃣ Send welcome email ONLY if tier was newly added
-      if (tierAdded) {
-        try {
-          const accessToken = jwt.sign(
-            { tiers: currentTiers, userId },
-            process.env.MAGIC_LINK_SECRET,
-            { expiresIn: "30d" }
-          );
+      res.json({ received: true });
+    }
+  );
 
-          await sendWelcomeEmail({
-            toEmail: userEmail,
-            tierName: TIER_CONFIG[tier].name,
-           accessLink: `https://portrait-intelligence-lab-backend.onrender.com/magic-access?token=${accessToken}`
+  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded({ extended: true }));
+  app.use(cookieParser());
+  app.use(
+    session({
+      secret: "portrait-intelligence-secret-key-2024",
+      resave: false,
+      saveUninitialized: true
+    })
+  );
 
-          });
+  app.use(express.static(path.join(__dirname, "public")));
 
-          console.log(`📧 Welcome email sent to ${userEmail}`);
-        } catch (emailErr) {
-          console.error("❌ Welcome email failed:", emailErr);
+
+  function requireUser(req) {
+    // 1️⃣ JWT user (paid users)
+    const token = req.cookies.auth_token;
+    if (token) {
+      try {
+        return jwt.verify(token, process.env.MAGIC_LINK_SECRET);
+      } catch (err) {}
+    }
+
+    // 2️⃣ Session user (free users)
+    if (req.session && req.session.userId) {
+      return getUserData(req);
+    }
+
+    return null;
+  }
+
+
+
+  /* ================== USER STORE ================== */
+
+  const userData = {};
+
+  function getUserData(req) {
+    if (!req.session.userId) {
+      req.session.userId = "guest_" + Date.now();
+    }
+
+    if (!userData[req.session.userId]) {
+      userData[req.session.userId] = {
+        tiers: ["free"],
+        microActions: Array(7).fill(false),
+        battles: [],
+        circleInvite: false,
+        pod: null,
+        name: ""
+      };
+    }
+
+    return userData[req.session.userId];
+  }
+
+
+
+  /* ================== CORE PAGES ================== */
+
+  app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+  });
+
+  app.get("/dashboard", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+  });
+
+  app.get("/micro-actions", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "micro-actions.html"));
+  });
+
+  app.get("/battle/register", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "battle-register.html"));
+  });
+
+  app.get("/circle/pod", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "circle-pod.html"));
+  });
+
+  /* ================== TIER PAGES ================== */
+
+  app.get("/tier/free", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "tiers", "free.html"));
+  });
+
+  Object.keys(TIER_CONFIG).forEach(tier => {
+    app.get(`/tier/${tier}`, (req, res) => {
+      res.sendFile(path.join(__dirname, "public", "tiers", `${tier}.html`));
+    });
+  });
+
+  /* ================== PAYMENT PAGES ================== */
+
+
+
+
+  app.get("/payment/:tier", (req, res) => {
+    const { tier } = req.params;
+
+    if (!TIER_CONFIG[tier]) {
+      return res.status(404).send("Invalid tier");
+    }
+
+    res.sendFile(path.join(__dirname, "public", "payment.html"));
+  });
+  /* ================== MAGIC ACCESS ================== */
+
+  app.get("/magic-access", (req, res) => {
+    const { token } = req.query;
+    if (!token) return res.status(403).send("Invalid access link");
+
+    try {
+      const jwtUser = jwt.verify(token, process.env.MAGIC_LINK_SECRET);
+      const sessionUser = getUserData(req);
+
+      // 🔥 MERGE DATA
+    const existingUserFromCookie =
+    req.cookies?.auth_token &&
+    jwt.verify(req.cookies.auth_token, process.env.MAGIC_LINK_SECRET);
+
+  const mergedUser = {
+    tiers: Array.from(new Set([
+      ...(existingUserFromCookie?.tiers || []),
+      ...(sessionUser.tiers || []),
+      ...(jwtUser.tiers || [])
+    ])),
+
+    microActions:
+      existingUserFromCookie?.microActions ||
+      sessionUser.microActions ||
+      Array(7).fill(false),
+
+    battles:
+      existingUserFromCookie?.battles ||
+      sessionUser.battles ||
+      [],
+
+    // ✅ THIS IS THE IMPORTANT FIX
+    pod:
+      existingUserFromCookie?.pod ||
+      sessionUser.pod ||
+      null,
+
+    name:
+      existingUserFromCookie?.name ||
+      sessionUser.name ||
+      "",
+
+    circleInvite:
+      existingUserFromCookie?.circleInvite ||
+      sessionUser.circleInvite ||
+      jwtUser.tiers?.includes("9999") ||
+      jwtUser.tiers?.includes("circle")
+  };
+
+
+      const newToken = jwt.sign(
+        mergedUser,
+        process.env.MAGIC_LINK_SECRET
+      );
+
+      res.cookie("auth_token", newToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax"
+      });
+
+      return res.redirect(
+    "https://portrait-intelligence-lab-frontend.vercel.app/dashboard"
+  );
+
+    } catch (err) {
+      return res.status(403).send("Invalid or expired access link");
+    }
+  });
+
+
+
+
+  /* ================== STRIPE CHECKOUT ================== */
+
+  const supabaseAdmin = require("./supabaseAdmin");
+
+  // server.js - Updated Checkout Route
+  app.post("/api/stripe/create-checkout", async (req, res) => {
+    const { tier, supabaseUserId } = req.body;
+
+    // 1. Validation
+    if (!TIER_CONFIG[tier] || !supabaseUserId) {
+      return res.status(400).json({ error: "Invalid tier or user ID" });
+    }
+
+    try {
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: `Portrait Intelligence Lab – ${TIER_CONFIG[tier].name}`
+              },
+              unit_amount: TIER_CONFIG[tier].amount
+            },
+            quantity: 1
+          }
+        ],
+        // CRITICAL: Change these from dynamic req.get("host") to your fixed Vercel URL
+      success_url: `https://portrait-intelligence-lab-frontend.vercel.app/payment-confirm.html?tier=${tier}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://portrait-intelligence-lab-frontend.vercel.app/tier/${tier}`,
+        // metadata is key for your webhook to identify WHO bought WHAT
+        metadata: {
+          tier: tier,
+          supabaseUserId: supabaseUserId // Ensure this matches your webhook logic
         }
+      });
+
+      // Vercel/Render frontend expects a URL to redirect the user
+      res.json({ url: session.url });
+    } catch (err) {
+      console.error("Stripe Session Error:", err);
+      res.status(500).json({ error: "Failed to create checkout session" });
+    }
+  });
+
+  /* ================== USER API ================== */
+  /* ================== USER API ================== */
+  app.get("/api/user", async (req, res) => {
+    let jwtUser = null;
+
+    // 1️⃣ Read JWT from cookie (session identity)
+    if (req.cookies?.auth_token) {
+      try {
+        jwtUser = jwt.verify(
+          req.cookies.auth_token,
+          process.env.MAGIC_LINK_SECRET
+        );
+      } catch {}
+    }
+
+    // 2️⃣ Not logged in → return defaults
+    if (!jwtUser?.userId) {
+      return res.json({
+        tiers: ["free"],
+        microActions: Array(7).fill(false),
+        battles: [],
+        battleRegistrations: [],
+        pod: null,
+        name: "",
+        circleInvite: false
+      });
+    }
+
+    // 3️⃣ Fetch latest profile from Supabase (SOURCE OF TRUTH)
+    const { data: profile, error } = await supabaseAdmin
+      .from("profiles")
+      .select("tier, battle_registrations, micro_actions, pod_id, name")
+      .eq("id", jwtUser.userId)
+      .single();
+
+    if (error || !profile) {
+      return res.json({
+        tiers: ["free"],
+        microActions: Array(7).fill(false),
+        battles: [],
+        battleRegistrations: [],
+        pod: null,
+        name: "",
+        circleInvite: false
+      });
+    }
+
+    // 4️⃣ Normalize tiers
+    const tiers = Array.isArray(profile.tier)
+      ? profile.tier
+      : [profile.tier || "free"];
+
+    return res.json({
+      tiers,
+      microActions: profile.micro_actions || Array(7).fill(false),
+      battles: [], // (legacy – safe to keep)
+      battleRegistrations: profile.battle_registrations || [],
+      pod: profile.pod_id || null,
+      name: profile.name || "",
+      circleInvite: tiers.includes("9999")
+    });
+  });
+
+
+
+  function getOrCreateUser(req, res) {
+    const token = req.cookies?.auth_token;
+
+    // If JWT exists, use it
+    if (token) {
+      try {
+        return jwt.verify(token, process.env.MAGIC_LINK_SECRET);
+      } catch {
+        // fall through and create guest
       }
     }
 
-    res.json({ received: true });
-  }
-);
-
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser());
-app.use(
-  session({
-    secret: "portrait-intelligence-secret-key-2024",
-    resave: false,
-    saveUninitialized: true
-  })
-);
-
-app.use(express.static(path.join(__dirname, "public")));
-
-
-function requireUser(req) {
-  // 1️⃣ JWT user (paid users)
-  const token = req.cookies.auth_token;
-  if (token) {
-    try {
-      return jwt.verify(token, process.env.MAGIC_LINK_SECRET);
-    } catch (err) {}
-  }
-
-  // 2️⃣ Session user (free users)
-  if (req.session && req.session.userId) {
-    return getUserData(req);
-  }
-
-  return null;
-}
-
-
-
-/* ================== USER STORE ================== */
-
-const userData = {};
-
-function getUserData(req) {
-  if (!req.session.userId) {
-    req.session.userId = "guest_" + Date.now();
-  }
-
-  if (!userData[req.session.userId]) {
-    userData[req.session.userId] = {
+    const guestUser = {
       tiers: ["free"],
       microActions: Array(7).fill(false),
       battles: [],
-      circleInvite: false,
       pod: null,
       name: ""
     };
-  }
-
-  return userData[req.session.userId];
-}
-
-
-
-/* ================== CORE PAGES ================== */
-
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-app.get("/dashboard", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
-});
-
-app.get("/micro-actions", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "micro-actions.html"));
-});
-
-app.get("/battle/register", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "battle-register.html"));
-});
-
-app.get("/circle/pod", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "circle-pod.html"));
-});
-
-/* ================== TIER PAGES ================== */
-
-app.get("/tier/free", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "tiers", "free.html"));
-});
-
-Object.keys(TIER_CONFIG).forEach(tier => {
-  app.get(`/tier/${tier}`, (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "tiers", `${tier}.html`));
-  });
-});
-
-/* ================== PAYMENT PAGES ================== */
-
-
-
-
-app.get("/payment/:tier", (req, res) => {
-  const { tier } = req.params;
-
-  if (!TIER_CONFIG[tier]) {
-    return res.status(404).send("Invalid tier");
-  }
-
-  res.sendFile(path.join(__dirname, "public", "payment.html"));
-});
-/* ================== MAGIC ACCESS ================== */
-
-app.get("/magic-access", (req, res) => {
-  const { token } = req.query;
-  if (!token) return res.status(403).send("Invalid access link");
-
-  try {
-    const jwtUser = jwt.verify(token, process.env.MAGIC_LINK_SECRET);
-    const sessionUser = getUserData(req);
-
-    // 🔥 MERGE DATA
-  const existingUserFromCookie =
-  req.cookies?.auth_token &&
-  jwt.verify(req.cookies.auth_token, process.env.MAGIC_LINK_SECRET);
-
-const mergedUser = {
-  tiers: Array.from(new Set([
-    ...(existingUserFromCookie?.tiers || []),
-    ...(sessionUser.tiers || []),
-    ...(jwtUser.tiers || [])
-  ])),
-
-  microActions:
-    existingUserFromCookie?.microActions ||
-    sessionUser.microActions ||
-    Array(7).fill(false),
-
-  battles:
-    existingUserFromCookie?.battles ||
-    sessionUser.battles ||
-    [],
-
-  // ✅ THIS IS THE IMPORTANT FIX
-  pod:
-    existingUserFromCookie?.pod ||
-    sessionUser.pod ||
-    null,
-
-  name:
-    existingUserFromCookie?.name ||
-    sessionUser.name ||
-    "",
-
-  circleInvite:
-    existingUserFromCookie?.circleInvite ||
-    sessionUser.circleInvite ||
-    jwtUser.tiers?.includes("9999") ||
-    jwtUser.tiers?.includes("circle")
-};
-
 
     const newToken = jwt.sign(
-      mergedUser,
+      guestUser,
+      process.env.MAGIC_LINK_SECRET
+    );
+
+  res.cookie("auth_token", newToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    domain: ".vercel.app",
+    path: "/"
+  });
+
+
+    return guestUser;
+  }
+
+
+
+  app.post("/api/micro-action", (req, res) => {
+    const user = getOrCreateUser(req, res);
+
+    const { index, completed } = req.body;
+
+    if (typeof index !== "number" || index < 0 || index >= 7) {
+      return res.status(400).json({ success: false });
+    }
+
+    const microActions = user.microActions || Array(7).fill(false);
+    microActions[index] = completed === true;
+
+    const updatedUser = {
+      ...user,
+      microActions
+    };
+
+    const newToken = jwt.sign(
+      updatedUser,
       process.env.MAGIC_LINK_SECRET
     );
 
@@ -359,384 +569,193 @@ const mergedUser = {
       sameSite: "lax"
     });
 
-    return res.redirect(
-  "https://portrait-intelligence-lab-frontend.vercel.app/dashboard"
-);
-
-  } catch (err) {
-    return res.status(403).send("Invalid or expired access link");
-  }
-});
+    res.json({
+      success: true,
+      microActions
+    });
+  });
 
 
+  app.post("/api/circle/pod", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ success: false });
 
+      const token = authHeader.replace("Bearer ", "");
+      const { data: authUser, error: authError } = await supabaseAdmin.auth.getUser(token);
 
-/* ================== STRIPE CHECKOUT ================== */
+      if (authError || !authUser?.user) return res.status(401).json({ success: false });
 
-const supabaseAdmin = require("./supabaseAdmin");
+      const userId = authUser.user.id;
 
-// server.js - Updated Checkout Route
-app.post("/api/stripe/create-checkout", async (req, res) => {
-  const { tier, supabaseUserId } = req.body;
+      const { data: profile, error } = await supabaseAdmin
+        .from("profiles")
+        .select("tier, pod_id")
+        .eq("id", userId)
+        .single();
 
-  // 1. Validation
-  if (!TIER_CONFIG[tier] || !supabaseUserId) {
-    return res.status(400).json({ error: "Invalid tier or user ID" });
-  }
+      if (error || !profile) return res.status(500).json({ success: false });
 
-  try {
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: `Portrait Intelligence Lab – ${TIER_CONFIG[tier].name}`
-            },
-            unit_amount: TIER_CONFIG[tier].amount
-          },
-          quantity: 1
-        }
-      ],
-      // CRITICAL: Change these from dynamic req.get("host") to your fixed Vercel URL
-     success_url: `https://portrait-intelligence-lab-frontend.vercel.app/payment-confirm.html?tier=${tier}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `https://portrait-intelligence-lab-frontend.vercel.app/tier/${tier}`,
-      // metadata is key for your webhook to identify WHO bought WHAT
-      metadata: {
-        tier: tier,
-        supabaseUserId: supabaseUserId // Ensure this matches your webhook logic
+      // ✅ FIX: Handle both string and array formats for Circle verification
+      const userTiers = Array.isArray(profile.tier) ? profile.tier : [profile.tier];
+      if (!userTiers.includes("9999")) {
+        return res.status(403).json({ success: false, message: "Not a Circle member" });
       }
-    });
 
-    // Vercel/Render frontend expects a URL to redirect the user
-    res.json({ url: session.url });
-  } catch (err) {
-    console.error("Stripe Session Error:", err);
-    res.status(500).json({ error: "Failed to create checkout session" });
-  }
-});
+      if (profile.pod_id) return res.json({ success: true, pod: profile.pod_id });
 
-/* ================== USER API ================== */
-/* ================== USER API ================== */
-app.get("/api/user", async (req, res) => {
-  let jwtUser = null;
+      const podId = `POD-${Math.floor(1000 + Math.random() * 9000)}`;
+      await supabaseAdmin.from("profiles").update({ pod_id: podId }).eq("id", userId);
 
-  // 1️⃣ Read JWT from cookie (session identity)
-  if (req.cookies?.auth_token) {
+      res.json({ success: true, pod: podId });
+    } catch (err) {
+      console.error("Join pod error:", err);
+      res.status(500).json({ success: false });
+    }
+  });
+
+
+  app.post("/api/battle/register", async (req, res) => {
     try {
-      jwtUser = jwt.verify(
-        req.cookies.auth_token,
-        process.env.MAGIC_LINK_SECRET
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ success: false });
+      }
+
+      const token = authHeader.replace("Bearer ", "");
+      const { data: authUser, error: authError } =
+        await supabaseAdmin.auth.getUser(token);
+
+      if (authError || !authUser?.user) {
+        return res.status(401).json({ success: false });
+      }
+
+      const userId = authUser.user.id;
+
+      // 1️⃣ Fetch profile including registrations
+      const { data: profile, error } = await supabaseAdmin
+        .from("profiles")
+        .select("tier, battle_registrations")
+        .eq("id", userId)
+        .single();
+
+      if (error || !profile) {
+        return res.status(404).json({
+          success: false,
+          message: "Profile not found"
+        });
+      }
+
+      // 2️⃣ Normalize tiers
+      const userTiers = Array.isArray(profile.tier)
+        ? profile.tier
+        : [profile.tier];
+
+      const eligibleTiers = ["199", "999", "9999"];
+
+      const eligibleTier = [...eligibleTiers]
+        .reverse()
+        .find(t => userTiers.includes(t));
+
+      if (!eligibleTier) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not eligible for this battle"
+        });
+      }
+
+      // 3️⃣ Check duplicate registration (same battle + same tier)
+      const registrations = profile.battle_registrations || [];
+
+      const alreadyRegistered = registrations.some(
+        r => r.battle === "current" && r.tier === eligibleTier
       );
-    } catch {}
-  }
 
-  // 2️⃣ Not logged in → return defaults
-  if (!jwtUser?.userId) {
-    return res.json({
-      tiers: ["free"],
-      microActions: Array(7).fill(false),
-      battles: [],
-      battleRegistrations: [],
-      pod: null,
-      name: "",
-      circleInvite: false
-    });
-  }
+      if (alreadyRegistered) {
+        return res.status(409).json({
+          success: false,
+          message: "You have already registered for this battle with this tier."
+        });
+      }
 
-  // 3️⃣ Fetch latest profile from Supabase (SOURCE OF TRUTH)
-  const { data: profile, error } = await supabaseAdmin
-    .from("profiles")
-    .select("tier, battle_registrations, micro_actions, pod_id, name")
-    .eq("id", jwtUser.userId)
-    .single();
+      // 4️⃣ Register user
+      const updatedRegistrations = [
+        ...registrations,
+        {
+          battle: "current",
+          tier: eligibleTier,
+          registeredAt: new Date().toISOString()
+        }
+      ];
 
-  if (error || !profile) {
-    return res.json({
-      tiers: ["free"],
-      microActions: Array(7).fill(false),
-      battles: [],
-      battleRegistrations: [],
-      pod: null,
-      name: "",
-      circleInvite: false
-    });
-  }
+      const { error: updateError } = await supabaseAdmin
+        .from("profiles")
+        .update({
+          battle_registrations: updatedRegistrations
+        })
+        .eq("id", userId);
 
-  // 4️⃣ Normalize tiers
-  const tiers = Array.isArray(profile.tier)
-    ? profile.tier
-    : [profile.tier || "free"];
+      if (updateError) {
+        throw updateError;
+      }
 
-  return res.json({
-    tiers,
-    microActions: profile.micro_actions || Array(7).fill(false),
-    battles: [], // (legacy – safe to keep)
-    battleRegistrations: profile.battle_registrations || [],
-    pod: profile.pod_id || null,
-    name: profile.name || "",
-    circleInvite: tiers.includes("9999")
-  });
-});
+      // 5️⃣ Division mapping
+      let division = "access";
+      if (eligibleTier === "9999") division = "circle";
+      else if (eligibleTier === "999") division = "elite";
 
+      return res.json({
+        success: true,
+        division,
+        tierUsed: eligibleTier
+      });
 
-
-function getOrCreateUser(req, res) {
-  const token = req.cookies?.auth_token;
-
-  // If JWT exists, use it
-  if (token) {
-    try {
-      return jwt.verify(token, process.env.MAGIC_LINK_SECRET);
-    } catch {
-      // fall through and create guest
+    } catch (err) {
+      console.error("Battle registration error:", err);
+      res.status(500).json({ success: false });
     }
-  }
-
-  const guestUser = {
-    tiers: ["free"],
-    microActions: Array(7).fill(false),
-    battles: [],
-    pod: null,
-    name: ""
-  };
-
-  const newToken = jwt.sign(
-    guestUser,
-    process.env.MAGIC_LINK_SECRET
-  );
-
- res.cookie("auth_token", newToken, {
-  httpOnly: true,
-  secure: true,
-  sameSite: "none",
-  domain: ".vercel.app",
-  path: "/"
-});
-
-
-  return guestUser;
-}
-
-
-
-app.post("/api/micro-action", (req, res) => {
-  const user = getOrCreateUser(req, res);
-
-  const { index, completed } = req.body;
-
-  if (typeof index !== "number" || index < 0 || index >= 7) {
-    return res.status(400).json({ success: false });
-  }
-
-  const microActions = user.microActions || Array(7).fill(false);
-  microActions[index] = completed === true;
-
-  const updatedUser = {
-    ...user,
-    microActions
-  };
-
-  const newToken = jwt.sign(
-    updatedUser,
-    process.env.MAGIC_LINK_SECRET
-  );
-
-  res.cookie("auth_token", newToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax"
   });
 
-  res.json({
-    success: true,
-    microActions
-  });
-});
 
 
-app.post("/api/circle/pod", async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ success: false });
+  app.post("/api/refresh-session", async (req, res) => {
+    const { userId } = req.body;
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !authUser?.user) return res.status(401).json({ success: false });
-
-    const userId = authUser.user.id;
-
+    // 1. Fetch the latest data from Supabase
     const { data: profile, error } = await supabaseAdmin
       .from("profiles")
-      .select("tier, pod_id")
-      .eq("id", userId)
-      .single();
-
-    if (error || !profile) return res.status(500).json({ success: false });
-
-    // ✅ FIX: Handle both string and array formats for Circle verification
-    const userTiers = Array.isArray(profile.tier) ? profile.tier : [profile.tier];
-    if (!userTiers.includes("9999")) {
-      return res.status(403).json({ success: false, message: "Not a Circle member" });
-    }
-
-    if (profile.pod_id) return res.json({ success: true, pod: profile.pod_id });
-
-    const podId = `POD-${Math.floor(1000 + Math.random() * 9000)}`;
-    await supabaseAdmin.from("profiles").update({ pod_id: podId }).eq("id", userId);
-
-    res.json({ success: true, pod: podId });
-  } catch (err) {
-    console.error("Join pod error:", err);
-    res.status(500).json({ success: false });
-  }
-});
-
-
-app.post("/api/battle/register", async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ success: false });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: authUser, error: authError } =
-      await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !authUser?.user) {
-      return res.status(401).json({ success: false });
-    }
-
-    const userId = authUser.user.id;
-
-    // 1️⃣ Fetch profile including registrations
-    const { data: profile, error } = await supabaseAdmin
-      .from("profiles")
-      .select("tier, battle_registrations")
+      .select("*")
       .eq("id", userId)
       .single();
 
     if (error || !profile) {
-      return res.status(404).json({
-        success: false,
-        message: "Profile not found"
-      });
+      return res.status(400).json({ error: "User not found" });
     }
 
-    // 2️⃣ Normalize tiers
-    const userTiers = Array.isArray(profile.tier)
-      ? profile.tier
-      : [profile.tier];
+    // 2. Create the new payload (Make sure this matches your app's user object structure)
+    const jwtUser = {
+      tiers: [profile.tier], // Dashboard checks this array
+      microActions: profile.micro_actions || [],
+      pod: profile.pod_id || null,
+      circleInvite: profile.tier === "9999",
+      name: profile.name || ""
+    };
 
-    const eligibleTiers = ["199", "999", "9999"];
+    // 3. Sign and overwrite the cookie
+    const token = jwt.sign(jwtUser, process.env.MAGIC_LINK_SECRET);
 
-    const eligibleTier = [...eligibleTiers]
-      .reverse()
-      .find(t => userTiers.includes(t));
-
-    if (!eligibleTier) {
-      return res.status(403).json({
-        success: false,
-        message: "You are not eligible for this battle"
-      });
-    }
-
-    // 3️⃣ Check duplicate registration (same battle + same tier)
-    const registrations = profile.battle_registrations || [];
-
-    const alreadyRegistered = registrations.some(
-      r => r.battle === "current" && r.tier === eligibleTier
-    );
-
-    if (alreadyRegistered) {
-      return res.status(409).json({
-        success: false,
-        message: "You have already registered for this battle with this tier."
-      });
-    }
-
-    // 4️⃣ Register user
-    const updatedRegistrations = [
-      ...registrations,
-      {
-        battle: "current",
-        tier: eligibleTier,
-        registeredAt: new Date().toISOString()
-      }
-    ];
-
-    const { error: updateError } = await supabaseAdmin
-      .from("profiles")
-      .update({
-        battle_registrations: updatedRegistrations
-      })
-      .eq("id", userId);
-
-    if (updateError) {
-      throw updateError;
-    }
-
-    // 5️⃣ Division mapping
-    let division = "access";
-    if (eligibleTier === "9999") division = "circle";
-    else if (eligibleTier === "999") division = "elite";
-
-    return res.json({
-      success: true,
-      division,
-      tierUsed: eligibleTier
+    res.cookie("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/" // Ensure it's available site-wide
     });
 
-  } catch (err) {
-    console.error("Battle registration error:", err);
-    res.status(500).json({ success: false });
-  }
-});
-
-
-
-app.post("/api/refresh-session", async (req, res) => {
-  const { userId } = req.body;
-
-  // 1. Fetch the latest data from Supabase
-  const { data: profile, error } = await supabaseAdmin
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single();
-
-  if (error || !profile) {
-    return res.status(400).json({ error: "User not found" });
-  }
-
-  // 2. Create the new payload (Make sure this matches your app's user object structure)
-  const jwtUser = {
-    tiers: [profile.tier], // Dashboard checks this array
-    microActions: profile.micro_actions || [],
-    pod: profile.pod_id || null,
-    circleInvite: profile.tier === "9999",
-    name: profile.name || ""
-  };
-
-  // 3. Sign and overwrite the cookie
-  const token = jwt.sign(jwtUser, process.env.MAGIC_LINK_SECRET);
-
-  res.cookie("auth_token", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/" // Ensure it's available site-wide
+    res.json({ success: true });
   });
 
-  res.json({ success: true });
-});
+  /* ================== SERVER ================== */
 
-/* ================== SERVER ================== */
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
