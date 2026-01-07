@@ -84,6 +84,19 @@ async function sendWelcomeEmail({ toEmail, tierName, accessLink, receiptUrl}) {
     Access Your Dashboard
   </a>
 </div>
+<div style="text-align:center; margin-top:16px;">
+  <a href="${receiptUrl}"
+     target="_blank"
+     style="
+       color:#2563eb;
+       font-size:14px;
+       font-weight:600;
+       text-decoration:underline;
+     ">
+    View Payment Receipt
+  </a>
+</div>
+
 
               <p style="font-size:14px; color:#6b7280; line-height:1.6;">
   Please save this email. The access link allows you to return and review your
