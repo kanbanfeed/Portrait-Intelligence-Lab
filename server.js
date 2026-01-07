@@ -24,8 +24,7 @@
   const supabaseAdmin = require("./supabaseAdmin");
 
   const cors = require('cors');
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
 
    
 
@@ -180,8 +179,6 @@ let currentTiers = Array.isArray(freshProfile.tier)
   ? freshProfile.tier
   : ["free"];
 
-
-      
         let tierAdded = false;
 
         if (!currentTiers.includes(tier)) {
@@ -227,7 +224,8 @@ let currentTiers = Array.isArray(freshProfile.tier)
       res.json({ received: true });
     }
   );
-
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
   app.use(cookieParser());
   app.use(
