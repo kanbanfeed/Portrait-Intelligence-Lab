@@ -84,19 +84,18 @@ async function sendWelcomeEmail({ toEmail, tierName, accessLink, receiptUrl}) {
     Access Your Dashboard
   </a>
 </div>
-${receiptUrl ? `
-  <div style="text-align:center; margin-top:16px;">
-    <a href="${receiptUrl}"
-       target="_blank"
-       rel="noopener noreferrer"
-       style="
-         color:#2563eb;
-         font-size:14px;
-         font-weight:600;
-         text-decoration:underline;
-       ">
-      View Payment Receipt
-    </a>
+${paymentDetails ? `
+  <div style="margin-top:24px; padding:16px; background:#f9fafb; border-radius:8px;">
+    <h3 style="margin:0 0 8px 0; font-size:15px;">Payment Details</h3>
+    <p style="margin:4px 0; font-size:14px;">
+      <strong>Tier:</strong> ${paymentDetails.tierLabel}
+    </p>
+    <p style="margin:4px 0; font-size:14px;">
+      <strong>Payment ID:</strong> ${paymentDetails.paymentId}
+    </p>
+    <p style="margin:4px 0; font-size:14px;">
+      <strong>Payment Method:</strong> ${paymentDetails.paymentMethod}
+    </p>
   </div>
 ` : ""}
 
