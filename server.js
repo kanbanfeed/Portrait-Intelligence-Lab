@@ -3,7 +3,6 @@
   const Stripe = require("stripe");
   const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
   const express = require("express");
-  const bodyParser = require("body-parser");
   const cookieParser = require("cookie-parser");
   const session = require("express-session");
   const path = require("path");
@@ -15,6 +14,7 @@
 
   const app = express();
 
+
   const emailRoutes = require("./routes/email");
 
 
@@ -23,6 +23,10 @@
 
 
   const cors = require('cors');
+
+  app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+   
 
   // Replace this with your actual Vercel domain
   const allowedOrigins = [
@@ -46,7 +50,21 @@
 
 
 
-  app.use("/api", emailRoutes);
+
+
+
+
+  /* ================== CONFIG ================== */
+
+  const TIER_CONFIG = {
+    "9.99": { name: "Starter Tier", amount: 999 },
+    "19.99": { name: "Professional Tier", amount: 1999 },
+    "199": { name: "Access Pass", amount: 19900 },
+    "999": { name: "Elite Challenge", amount: 99900 },
+    "9999": { name: "The Circle", amount: 999900 }
+  };
+
+
 
 app.post("/api/auth/signup-complete", async (req, res) => {
   const { userId, email } = req.body;
@@ -96,22 +114,8 @@ app.post("/api/auth/signup-complete", async (req, res) => {
   } catch (err) {
     console.error("❌ Signup email error:", err);
     res.status(500).json({ success: false, error: err.message });
-  }
+  } 
 });
-
-
-  /* ================== CONFIG ================== */
-
-  const TIER_CONFIG = {
-    "9.99": { name: "Starter Tier", amount: 999 },
-    "19.99": { name: "Professional Tier", amount: 1999 },
-    "199": { name: "Access Pass", amount: 19900 },
-    "999": { name: "Elite Challenge", amount: 99900 },
-    "9999": { name: "The Circle", amount: 999900 }
-  };
-
-
-
 
 
   /* ================== UPDATED STRIPE WEBHOOK ================== */
