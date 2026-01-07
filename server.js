@@ -141,7 +141,7 @@ app.post("/api/auth/signup-complete", async (req, res) => {
       if (event.type === "checkout.session.completed") {
         const session = event.data.object;
 
-        const tier = session.metadata?.tier;
+const tier = String(session.metadata?.tier);
         const userId = session.metadata?.supabaseUserId;
         const userEmail =
           session.customer_details?.email ||
@@ -156,19 +156,32 @@ app.post("/api/auth/signup-complete", async (req, res) => {
         }
 
         // 1️⃣ Fetch profile
-        const { data: profile, error: fetchError } = await supabaseAdmin
-          .from("profiles")
-          .select("tier")
-          .eq("id", userId)
-          .single();
+     const { data: profile } = await supabaseAdmin
+  .from("profiles")
+  .select("tier")
+  .eq("id", userId)
+  .maybeSingle();
 
-        if (fetchError) {
-          console.error("❌ Profile fetch failed:", fetchError);
-          return res.status(500).send("Database error");
-        }
+if (!profile) {
+  await supabaseAdmin.from("profiles").insert({
+    id: userId,
+    tier: ["free"]
+  });
+}
 
-        // 2️⃣ Update tiers
-        let currentTiers = Array.isArray(profile?.tier) ? profile.tier : ["free"];
+      // 🔁 Re-fetch profile AFTER ensuring it exists
+const { data: freshProfile } = await supabaseAdmin
+  .from("profiles")
+  .select("tier")
+  .eq("id", userId)
+  .single();
+
+let currentTiers = Array.isArray(freshProfile.tier)
+  ? freshProfile.tier
+  : ["free"];
+
+
+      
         let tierAdded = false;
 
         if (!currentTiers.includes(tier)) {
