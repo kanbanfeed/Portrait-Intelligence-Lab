@@ -146,11 +146,12 @@ app.post("/api/auth/signup-complete", async (req, res) => {
         const session = event.data.object;
 
 // 🔁 Fetch PaymentIntent to get Stripe receipt URL
+
 const paymentIntent = await stripe.paymentIntents.retrieve(
   session.payment_intent
 );
 
-const receiptUrl = paymentIntent?.charges?.data?.[0]?.receipt_url;
+const receiptUrl = paymentIntent.charges.data[0]?.receipt_url || null;
 
 
 const tier = String(session.metadata?.tier);
@@ -191,8 +192,6 @@ const { data: freshProfile } = await supabaseAdmin
 let currentTiers = Array.isArray(freshProfile?.tier)
   ? freshProfile.tier
   : ["free"];
-
-
         let tierAdded = false;
 
         if (!currentTiers.includes(tier)) {
