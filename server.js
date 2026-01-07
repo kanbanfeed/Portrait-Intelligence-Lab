@@ -67,7 +67,12 @@
 
 
 app.post("/api/auth/signup-complete", async (req, res) => {
+  if (!req.body || !req.body.userId || !req.body.email) {
+    return res.status(400).json({ success: false, message: "Missing body" });
+  }
+
   const { userId, email } = req.body;
+
 
   try {
     // 1️⃣ Ensure profile exists (CREATE IF NOT)
@@ -181,11 +186,12 @@ const { data: freshProfile } = await supabaseAdmin
   .from("profiles")
   .select("tier")
   .eq("id", userId)
-  .single();
+  .maybeSingle();
 
-let currentTiers = Array.isArray(freshProfile.tier)
+let currentTiers = Array.isArray(freshProfile?.tier)
   ? freshProfile.tier
   : ["free"];
+
 
         let tierAdded = false;
 
