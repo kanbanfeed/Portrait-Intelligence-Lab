@@ -97,19 +97,17 @@ ${paymentDetails ? `
   <strong>Payment Method:</strong> ${paymentDetails.paymentMethod}
 </p>
 
-<hr style="border:none; border-top:1px solid #e5e7eb; margin:10px 0;" />
+<hr style="margin:12px 0;border:none;border-top:1px solid #e5e7eb;" />
 
-<p style="margin:4px 0; font-size:14px;">
-  <strong>Subtotal:</strong> ${paymentDetails.amount}
-</p>
+<p><strong>Subtotal:</strong> ${paymentDetails.subtotal}</p>
+
 
 <p style="margin:4px 0; font-size:14px;">
   <strong>VAT:</strong> $0.00 (Not applicable)
 </p>
 
 <p style="margin:4px 0; font-size:14px;">
-  <strong>Total Paid:</strong> ${paymentDetails.amount}
-</p>
+<p><strong>Total Paid:</strong> ${paymentDetails.subtotal}</p></
 
 <p style="font-size:12px; color:#6b7280; margin-top:8px;">
   No VAT has been charged as Crowbar Ventures Limited is not currently registered

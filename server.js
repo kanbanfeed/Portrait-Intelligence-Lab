@@ -149,16 +149,22 @@ app.post("/api/auth/signup-complete", async (req, res) => {
 
 
 const tier = String(session.metadata?.tier);
+const amountInPounds = (TIER_CONFIG[tier].amount / 100).toFixed(2);
         const userId = session.metadata?.supabaseUserId;
         const userEmail =
           session.customer_details?.email ||
           session.customer_email ||
           session.customer?.email;
 
-          const paymentDetails = {
-  tierLabel: `${TIER_CONFIG[tier].name} ($${TIER_CONFIG[tier].amount / 100})`,
+ const paymentDetails = {
+  tierLabel: `${TIER_CONFIG[tier].name} (£${amountInPounds})`,
   paymentId: session.id,
-  paymentMethod: "Stripe"
+  paymentMethod: "Stripe",
+
+  // ✅ ADD THESE
+  subtotal: `£${amountInPounds}`,
+  vat: "£0.00 (Not applicable)",
+  totalPaid: `£${amountInPounds}`
 };
 
         console.log(`Processing fulfillment for User: ${userId}, Tier: ${tier}`);
