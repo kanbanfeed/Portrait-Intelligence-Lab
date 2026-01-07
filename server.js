@@ -140,6 +140,14 @@ app.post("/api/auth/signup-complete", async (req, res) => {
       if (event.type === "checkout.session.completed") {
         const session = event.data.object;
 
+// 🔁 Fetch PaymentIntent to get Stripe receipt URL
+const paymentIntent = await stripe.paymentIntents.retrieve(
+  session.payment_intent
+);
+
+const receiptUrl = paymentIntent?.charges?.data?.[0]?.receipt_url;
+
+
 const tier = String(session.metadata?.tier);
         const userId = session.metadata?.supabaseUserId;
         const userEmail =
@@ -210,8 +218,8 @@ let currentTiers = Array.isArray(freshProfile.tier)
             await sendWelcomeEmail({
               toEmail: userEmail,
               tierName: TIER_CONFIG[tier].name,
-            accessLink: `https://portrait-intelligence-lab-backend.onrender.com/magic-access?token=${accessToken}`
-
+            accessLink: `https://portrait-intelligence-lab-backend.onrender.com/magic-access?token=${accessToken}`,
+             receiptUrl
             });
 
             console.log(`📧 Welcome email sent to ${userEmail}`);
@@ -219,6 +227,7 @@ let currentTiers = Array.isArray(freshProfile.tier)
             console.error("❌ Welcome email failed:", emailErr);
           }
         }
+   
       }
 
       res.json({ received: true });
