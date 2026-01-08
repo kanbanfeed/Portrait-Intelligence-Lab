@@ -13,8 +13,7 @@
 
 
   const app = express();
-  app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+ 
 
 
 
@@ -193,18 +192,10 @@ let currentTiers = Array.isArray(freshProfile?.tier)
     }
   );
 
+  //3. NOW apply global JSON parsing for all other routes
+   app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
-  app.use(
-    session({
-      secret: "portrait-intelligence-secret-key-2024",
-      resave: false,
-      saveUninitialized: true
-    })
-  );
-
-  app.use(express.static(path.join(__dirname, "public")));
-
-
 app.post("/api/auth/signup-complete", async (req, res) => {
   if (!req.body || !req.body.userId || !req.body.email) {
     return res.status(400).json({ success: false, message: "Missing body" });
@@ -260,6 +251,19 @@ app.post("/api/auth/signup-complete", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   } 
 });
+
+  app.use(
+    session({
+      secret: "portrait-intelligence-secret-key-2024",
+      resave: false,
+      saveUninitialized: true
+    })
+  );
+
+  app.use(express.static(path.join(__dirname, "public")));
+
+
+
 
 
   
