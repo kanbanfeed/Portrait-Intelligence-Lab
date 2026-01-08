@@ -196,6 +196,14 @@ let currentTiers = Array.isArray(freshProfile?.tier)
    app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
+   app.use(
+    session({
+      secret: "portrait-intelligence-secret-key-2024",
+      resave: false,
+      saveUninitialized: true
+    })
+  );
+  
 app.post("/api/auth/signup-complete", async (req, res) => {
   if (!req.body || !req.body.userId || !req.body.email) {
     return res.status(400).json({ success: false, message: "Missing body" });
@@ -252,13 +260,7 @@ app.post("/api/auth/signup-complete", async (req, res) => {
   } 
 });
 
-  app.use(
-    session({
-      secret: "portrait-intelligence-secret-key-2024",
-      resave: false,
-      saveUninitialized: true
-    })
-  );
+ 
 
   app.use(express.static(path.join(__dirname, "public")));
 
