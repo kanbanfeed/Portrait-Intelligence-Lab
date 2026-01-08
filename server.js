@@ -441,7 +441,7 @@ app.use(express.urlencoded({ extended: true }));
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
-        customer_email: supabaseUser.email,
+        customer_email: userEmail,
         line_items: [
           {
             price_data: {
