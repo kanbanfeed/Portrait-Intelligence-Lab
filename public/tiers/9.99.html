@@ -82,12 +82,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    btn.textContent = "Login & Join";
-    btn.onclick = () => {
-      window.location.href = "/auth/login.html";
-    };
-    return;
-  }
+  btn.textContent = "Login & Join";
+  btn.onclick = () => {
+    // ✅ Redirect back to THIS tier after login
+   window.location.href = "/auth/login.html?redirect=/9.99.html";
+  };
+  return;
+}
+
 
   /* ======================
       CHECK USER PROFILE

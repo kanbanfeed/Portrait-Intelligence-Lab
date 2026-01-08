@@ -8,6 +8,8 @@ document.addEventListener("headerLoaded", async () => {
     return;
   }
 
+
+
   // Get both the buttons and their list-item containers
   const loginItem = document.getElementById("login-item");
   const logoutItem = document.getElementById("logout-item");

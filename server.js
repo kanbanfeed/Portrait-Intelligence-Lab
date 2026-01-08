@@ -12,9 +12,7 @@
   const jwt = require("jsonwebtoken");
 
 
-  const app = express();
-  app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
 
 
 
@@ -22,7 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 
 
   const PORT = process.env.PORT || 5000;
-
+const app = express();
 
   const supabaseAdmin = require("./supabaseAdmin");
 
@@ -125,7 +123,7 @@ app.post("/api/auth/signup-complete", async (req, res) => {
   } 
 });
 
-
+ 
   /* ================== UPDATED STRIPE WEBHOOK ================== */
   app.post(
     "/api/stripe/webhook",
@@ -247,6 +245,10 @@ let currentTiers = Array.isArray(freshProfile?.tier)
       res.json({ received: true });
     }
   );
+
+ 
+  app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
   app.use(cookieParser());
   app.use(
@@ -475,8 +477,7 @@ let currentTiers = Array.isArray(freshProfile?.tier)
     }
   });
 
-  /* ================== USER API ================== */
-  /* ================== USER API ================== */
+
   app.get("/api/user", async (req, res) => {
     let jwtUser = null;
 
