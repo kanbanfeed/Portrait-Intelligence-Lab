@@ -613,22 +613,28 @@ let currentTiers = Array.isArray(freshProfile?.tier)
     });
   });
 //for email registration 
-  app.post("/api/auth/check-email", async (req, res) => {
+app.post("/api/auth/check-email", async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
     return res.status(400).json({ exists: false });
   }
 
-  const { data, error } = await supabaseAdmin.auth.admin.listUsers({
-    email
-  });
+  try {
+    // Attempt to list users with this specific email
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({
+      email: email
+    });
 
-  if (error) {
-    return res.status(500).json({ exists: false });
+    if (error) throw error;
+
+    // If the list is not empty, the email exists
+    return res.json({ exists: data.users && data.users.length > 0 });
+  } catch (err) {
+    console.error("Email check error:", err);
+    // Return 200 with exists: false to prevent the frontend from moving to login
+    return res.json({ exists: false, error: "Database check failed" });
   }
-
-  res.json({ exists: data.users.length > 0 });
 });
 
 
