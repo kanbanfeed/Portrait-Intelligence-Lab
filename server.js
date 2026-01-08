@@ -612,6 +612,24 @@ let currentTiers = Array.isArray(freshProfile?.tier)
       microActions
     });
   });
+//for email registration 
+  app.post("/api/auth/check-email", async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ exists: false });
+  }
+
+  const { data, error } = await supabaseAdmin.auth.admin.listUsers({
+    email
+  });
+
+  if (error) {
+    return res.status(500).json({ exists: false });
+  }
+
+  res.json({ exists: data.users.length > 0 });
+});
 
 
   app.post("/api/circle/pod", async (req, res) => {
