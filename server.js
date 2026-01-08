@@ -12,7 +12,9 @@
   const jwt = require("jsonwebtoken");
 
 
-
+  const app = express();
+  app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 
 
@@ -20,7 +22,7 @@
 
 
   const PORT = process.env.PORT || 5000;
-const app = express();
+
 
   const supabaseAdmin = require("./supabaseAdmin");
 
@@ -67,63 +69,8 @@ const app = express();
 
 
 
-app.post("/api/auth/signup-complete", async (req, res) => {
-  if (!req.body || !req.body.userId || !req.body.email) {
-    return res.status(400).json({ success: false, message: "Missing body" });
-  }
-
-  const { userId, email } = req.body;
 
 
-  try {
-    // 1️⃣ Ensure profile exists (CREATE IF NOT)
-    const { data: profile, error } = await supabaseAdmin
-      .from("profiles")
-      .select("welcome_sent")
-      .eq("id", userId)
-      .maybeSingle(); // ✅ IMPORTANT
-
-    if (!profile) {
-      // Create profile row
-      await supabaseAdmin.from("profiles").insert({
-        id: userId,
-        email: email,
-        tier: ["free"],
-        welcome_sent: false
-      });
-    }
-
-    // 2️⃣ Re-fetch profile
-    const { data: freshProfile } = await supabaseAdmin
-      .from("profiles")
-      .select("welcome_sent")
-      .eq("id", userId)
-      .single();
-
-    // 3️⃣ Prevent duplicate emails
-    if (freshProfile.welcome_sent) {
-      return res.json({ success: true, skipped: true });
-    }
-
-    // 4️⃣ SEND EMAIL ✅
-    await sendSignupWelcomeEmail(email);
-
-    // 5️⃣ Mark as sent
-    await supabaseAdmin
-      .from("profiles")
-      .update({ welcome_sent: true })
-      .eq("id", userId);
-
-    console.log("📧 Signup welcome email sent:", email);
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error("❌ Signup email error:", err);
-    res.status(500).json({ success: false, error: err.message });
-  } 
-});
-
- 
   /* ================== UPDATED STRIPE WEBHOOK ================== */
   app.post(
     "/api/stripe/webhook",
@@ -246,10 +193,6 @@ let currentTiers = Array.isArray(freshProfile?.tier)
     }
   );
 
- 
-  app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
   app.use(cookieParser());
   app.use(
     session({
@@ -262,6 +205,64 @@ app.use(express.urlencoded({ extended: true }));
   app.use(express.static(path.join(__dirname, "public")));
 
 
+app.post("/api/auth/signup-complete", async (req, res) => {
+  if (!req.body || !req.body.userId || !req.body.email) {
+    return res.status(400).json({ success: false, message: "Missing body" });
+  }
+
+  const { userId, email } = req.body;
+
+
+  try {
+    // 1️⃣ Ensure profile exists (CREATE IF NOT)
+    const { data: profile, error } = await supabaseAdmin
+      .from("profiles")
+      .select("welcome_sent")
+      .eq("id", userId)
+      .maybeSingle(); // ✅ IMPORTANT
+
+    if (!profile) {
+      // Create profile row
+      await supabaseAdmin.from("profiles").insert({
+        id: userId,
+        email: email,
+        tier: ["free"],
+        welcome_sent: false
+      });
+    }
+
+    // 2️⃣ Re-fetch profile
+    const { data: freshProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("welcome_sent")
+      .eq("id", userId)
+      .single();
+
+    // 3️⃣ Prevent duplicate emails
+    if (freshProfile.welcome_sent) {
+      return res.json({ success: true, skipped: true });
+    }
+
+    // 4️⃣ SEND EMAIL ✅
+    await sendSignupWelcomeEmail(email);
+
+    // 5️⃣ Mark as sent
+    await supabaseAdmin
+      .from("profiles")
+      .update({ welcome_sent: true })
+      .eq("id", userId);
+
+    console.log("📧 Signup welcome email sent:", email);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Signup email error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  } 
+});
+
+
+  
   function requireUser(req) {
     // 1️⃣ JWT user (paid users)
     const token = req.cookies.auth_token;
@@ -477,7 +478,8 @@ app.use(express.urlencoded({ extended: true }));
     }
   });
 
-
+  /* ================== USER API ================== */
+  /* ================== USER API ================== */
   app.get("/api/user", async (req, res) => {
     let jwtUser = null;
 
