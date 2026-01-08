@@ -430,8 +430,10 @@ app.use(express.urlencoded({ extended: true }));
 
   // server.js - Updated Checkout Route
   app.post("/api/stripe/create-checkout", async (req, res) => {
-    const { tier, supabaseUserId } = req.body;
-
+    const { tier, supabaseUserId,userEmail} = req.body;
+ if (!userEmail) {
+      return res.status(400).json({ error: "User email is required" });
+    }
     // 1. Validation
     if (!TIER_CONFIG[tier] || !supabaseUserId) {
       return res.status(400).json({ error: "Invalid tier or user ID" });
