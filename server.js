@@ -76,6 +76,15 @@ const PRICE_ID_TO_TIER = {
   "price_1Snck9CZL3M2THxBKvC7LTj4": "999",
   "price_1SncluCZL3M2THxBQOywSMvY": "9999"
 };
+/* ================== TIER → STRIPE PRICE MAP (LIVE) ================== */
+const PRICE_ID_BY_TIER = {
+  "9.99": "price_1SncKBCZL3M2THxBWHI7c0WQ",
+  "19.99": "price_1SncemCZL3M2THxBGe4e5EiU",
+  "199": "price_1Snch0CZL3M2THxBcGRgCgDs",
+  "999": "price_1Snck9CZL3M2THxBKvC7LTj4",
+  "9999": "price_1SncluCZL3M2THxBQOywSMvY"
+};
+
 
 
 
@@ -122,14 +131,14 @@ const amountInUSD = (TIER_CONFIG[tier].amount / 100).toFixed(2);
           session.customer?.email;
 
  const paymentDetails = {
-  tierLabel: `${TIER_CONFIG[tier].name} (£${amountInUSD})`,
+tierLabel: `${TIER_CONFIG[tier].name} ($${amountInUSD})`,
   paymentId: session.id,
   paymentMethod: "Stripe",
 
   // ✅ ADD THESE
-  subtotal: `£${amountInUSD}`,
-  vat: "£0.00 (Not applicable)",
-  totalPaid: `£${amountInUSD}`
+  subtotal: `$${amountInUSD}`,
+vat: "$0.00 (Not applicable)",
+totalPaid: `$${amountInUSD}`
 };
 
         console.log(`Processing fulfillment for User: ${userId}, Tier: ${tier}`);
@@ -480,10 +489,12 @@ app.post("/api/auth/signup-complete", async (req, res) => {
       success_url: `https://portrait-intelligence-lab-frontend.vercel.app/payment-confirm.html?tier=${tier}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `https://portrait-intelligence-lab-frontend.vercel.app/tier/${tier}`,
         // metadata is key for your webhook to identify WHO bought WHAT
-        metadata: {
-          
-          supabaseUserId: supabaseUserId 
-        }
+       metadata: {
+  supabaseUserId: supabaseUserId,
+  tier: tier,
+  priceId: PRICE_ID_BY_TIER[tier]
+}
+
       });
 
       // Vercel/Render frontend expects a URL to redirect the user
