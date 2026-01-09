@@ -470,24 +470,19 @@ app.post("/api/auth/signup-complete", async (req, res) => {
         payment_method_types: ["card"],
         customer_email: userEmail,
         line_items: [
-          {
-            price_data: {
-              currency: "usd",
-              product_data: {
-                name: `Portrait Intelligence Lab – ${TIER_CONFIG[tier].name}`
-              },
-              unit_amount: TIER_CONFIG[tier].amount
-            },
-            quantity: 1
-          }
-        ],
+  {
+    price: PRICE_ID_BY_TIER[tier],
+    quantity: 1
+  }
+],
+
         // CRITICAL: Change these from dynamic req.get("host") to your fixed Vercel URL
       success_url: `https://portrait-intelligence-lab-frontend.vercel.app/payment-confirm.html?tier=${tier}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `https://portrait-intelligence-lab-frontend.vercel.app/tier/${tier}`,
         // metadata is key for your webhook to identify WHO bought WHAT
         metadata: {
           
-          supabaseUserId: supabaseUserId // Ensure this matches your webhook logic
+          supabaseUserId: supabaseUserId 
         }
       });
 
@@ -499,8 +494,7 @@ app.post("/api/auth/signup-complete", async (req, res) => {
     }
   });
 
-  /* ================== USER API ================== */
-  /* ================== USER API ================== */
+
   app.get("/api/user", async (req, res) => {
     let jwtUser = null;
 
