@@ -67,6 +67,16 @@
   };
 
 
+  /* ================== STRIPE PRICE → TIER MAP (LIVE) ================== */
+
+const PRICE_ID_TO_TIER = {
+  "price_1SncKBCZL3M2THxBWHI7c0WQ": "9.99",
+  "price_1SncemCZL3M2THxBGe4e5EiU": "19.99",
+  "price_1Snch0CZL3M2THxBcGRgCgDs": "199",
+  "price_1Snck9CZL3M2THxBKvC7LTj4": "999",
+  "price_1SncluCZL3M2THxBQOywSMvY": "9999"
+};
+
 
 
 
@@ -91,12 +101,20 @@
 
       if (event.type === "checkout.session.completed") {
         const session = event.data.object;
+        // 1️⃣ Get line items from Stripe (SOURCE OF TRUTH)
+const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+const priceId = lineItems.data[0]?.price?.id;
+
+// 2️⃣ Map Price ID → Tier
+const tier = PRICE_ID_TO_TIER[priceId];
+
+if (!tier) {
+  console.error("❌ Reminder: Unknown Price ID", priceId);
+  return res.status(400).send("Unknown Price ID");
+}
 
 
-
-
-const tier = String(session.metadata?.tier);
-const amountInPounds = (TIER_CONFIG[tier].amount / 100).toFixed(2);
+const amountInUSD = (TIER_CONFIG[tier].amount / 100).toFixed(2);
         const userId = session.metadata?.supabaseUserId;
         const userEmail =
           session.customer_details?.email ||
@@ -104,22 +122,19 @@ const amountInPounds = (TIER_CONFIG[tier].amount / 100).toFixed(2);
           session.customer?.email;
 
  const paymentDetails = {
-  tierLabel: `${TIER_CONFIG[tier].name} (£${amountInPounds})`,
+  tierLabel: `${TIER_CONFIG[tier].name} (£${amountInUSD})`,
   paymentId: session.id,
   paymentMethod: "Stripe",
 
   // ✅ ADD THESE
-  subtotal: `£${amountInPounds}`,
+  subtotal: `£${amountInUSD}`,
   vat: "£0.00 (Not applicable)",
-  totalPaid: `£${amountInPounds}`
+  totalPaid: `£${amountInUSD}`
 };
 
         console.log(`Processing fulfillment for User: ${userId}, Tier: ${tier}`);
 
-        if (!tier || !userId || !userEmail) {
-          console.error("❌ Missing metadata or email");
-          return res.status(400).send("Missing metadata");
-        }
+      
 
         // 1️⃣ Fetch profile
      const { data: profile } = await supabaseAdmin
@@ -471,7 +486,7 @@ app.post("/api/auth/signup-complete", async (req, res) => {
       cancel_url: `https://portrait-intelligence-lab-frontend.vercel.app/tier/${tier}`,
         // metadata is key for your webhook to identify WHO bought WHAT
         metadata: {
-          tier: tier,
+          
           supabaseUserId: supabaseUserId // Ensure this matches your webhook logic
         }
       });
