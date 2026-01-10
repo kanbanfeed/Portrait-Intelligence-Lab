@@ -71,18 +71,18 @@
 
 const PRICE_ID_TO_TIER = {
   "price_1SnvnlRvvT9mFaWX0o3RJowW": "9.99",
-  "price_1SncemCZL3M2THxBGe4e5EiU": "19.99",
-  "price_1Snch0CZL3M2THxBcGRgCgDs": "199",
+  "price_1SnvolRvvT9mFaWXp5q3QUEy": "19.99",
+  "price_1SnvpORvvT9mFaWXUmMkKsnY": "199",
   "price_1Snck9CZL3M2THxBKvC7LTj4": "999",
-  "price_1SncluCZL3M2THxBQOywSMvY": "9999"
+  "price_1SnvpqRvvT9mFaWXIVtkggf7": "9999"
 };
 /* ================== TIER → STRIPE PRICE MAP (LIVE) ================== */
 const PRICE_ID_BY_TIER = {
   "9.99": "price_1SnvnlRvvT9mFaWX0o3RJowW",
-  "19.99": "price_1SncemCZL3M2THxBGe4e5EiU",
-  "199": "price_1Snch0CZL3M2THxBcGRgCgDs",
+  "19.99": "price_1SnvolRvvT9mFaWXp5q3QUEy",
+  "199": "price_1SnvpORvvT9mFaWXUmMkKsnY",
   "999": "price_1Snck9CZL3M2THxBKvC7LTj4",
-  "9999": "price_1SncluCZL3M2THxBQOywSMvY"
+  "9999": "price_1SnvpqRvvT9mFaWXIVtkggf7"
 };
 
 
